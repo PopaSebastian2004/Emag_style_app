@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Page</title>
+    <link rel="stylesheet" href="../styles/style.css">
+</head>
+<body>
+    <header class="main-header">
+        <h1>Welcome, <span id="username">User</span>!</h1>
+        <nav>
+            <button id="logout-btn">Logout</button>
+        </nav>
+    </header>
+    <main class="content">
+        <section class="filter-section">
+            <h2>Filter Reviews by Category</h2>
+            <form id="filter-form">
+                <input type="text" id="filter-category" placeholder="Enter category to filter" required>
+                <button type="submit">Filter</button>
+            </form>
+        </section>
+        <section class="reviews-section">
+            <h2>Share Your Review</h2>
+            <form id="review-form">
+                <input type="text" id="entity" placeholder="Entity (e.g., Movie, Product)" required>
+                <input type="text" id="category" placeholder="Category (e.g., Electronics, Movies)" required>
+                <input type="number" id="rating" min="1" max="5" placeholder="Rating (1-5)" required>
+                <textarea id="comment" placeholder="Write your comment here..." required></textarea>
+                <button type="submit">Submit Review</button>
+            </form>
+        </section>
+        <section class="reviews-list">
+            <h2>Reviews</h2>
+            <ul id="reviews-container">
+                <!-- Reviews will be dynamically added here -->
+            </ul>
+        </section>
+    </main>
+    <footer class="main-footer">
+        <p>&copy; 2025 Review Application. All rights reserved.</p>
+    </footer>
+    <script src="../scripts/main.js"></script>
+</body>
+</html>
