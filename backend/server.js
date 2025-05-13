@@ -4,38 +4,30 @@ const fs = require("fs");
 const path = require("path");
 const qs = require("querystring");
 const bcrypt = require("bcrypt");
-const mysql = require("mysql2");
+const { Pool } = require("pg"); 
 
-// Configurare MySQL
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "global", // Parola ta MySQL
-    database: "web_app_reviews3", // Asigură-te că baza de date există
+// Configurare PostgreSQL
+const pool = new Pool({
+    user: "postgres",         // Numele utilizatorului PostgreSQL
+    host: "localhost",        // Gazda serverului PostgreSQL
+    database: "web_app_reviews3", // Numele bazei de date
+    password: "global",       // Parola utilizatorului PostgreSQL
+    port: 5432,               // Portul serverului PostgreSQL (implicit 5432)
 });
 
-// Conectare la baza de date
-db.connect((err) => {
-    if (err) {
-        console.error("Database connection failed:", err.stack);
-        return;
-    }
-    console.log("Connected to MySQL database.");
-});
-
-// Helper pentru răspunsuri HTTP
+// Helper pentru raspunsuri HTTP
 function sendResponse(res, statusCode, contentType, data) {
     res.writeHead(statusCode, { "Content-Type": contentType });
     res.end(data);
 }
 
-// Helper pentru redirecționare
+// Helper pentru redirectionare
 function redirect(res, location) {
     res.writeHead(302, { Location: location });
     res.end();
 }
 
-// Servește fișiere statice
+// Serveste fișiere statice
 function serveStaticFile(res, filePath) {
     const ext = path.extname(filePath).toLowerCase();
     const mimeTypes = {
@@ -113,7 +105,7 @@ function handleRequest(req, res) {
 }
 
 // Funcțiile pentru înregistrare, autentificare și alte procese
-function handleRegister(req, res) {
+async function handleRegister(req, res) {
     let body = "";
     req.on("data", (chunk) => {
         body += chunk.toString();
@@ -128,28 +120,22 @@ function handleRegister(req, res) {
 
         try {
             const hashedPassword = await bcrypt.hash(password, 10);
-            const query = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
-            db.query(query, [username, email, hashedPassword], (err) => {
-                if (err) {
-                    console.error("Database error during registration:", err);
-                    sendResponse(res, 500, "text/plain", "Error registering user.");
-                } else {
-                    sendResponse(res, 200, "text/plain", "Registration successful.");
-                }
-            });
+            const query = "INSERT INTO users (username, email, password) VALUES ($1, $2, $3)";
+            await pool.query(query, [username, email, hashedPassword]);
+            sendResponse(res, 200, "text/plain", "Registration successful.");
         } catch (err) {
-            console.error("Hashing error during registration:", err);
-            sendResponse(res, 500, "text/plain", "Error hashing password.");
+            console.error("Database error during registration:", err);
+            sendResponse(res, 500, "text/plain", "Error registering user.");
         }
     });
 }
 
-function handleLogin(req, res) {
+async function handleLogin(req, res) {
     let body = "";
     req.on("data", (chunk) => {
         body += chunk.toString();
     });
-    req.on("end", () => {
+    req.on("end", async () => {
         const { email, password } = qs.parse(body);
 
         if (!email || !password) {
@@ -157,55 +143,59 @@ function handleLogin(req, res) {
             return;
         }
 
-        const query = "SELECT * FROM users WHERE email = ?";
-        db.query(query, [email], async (err, results) => {
-            if (err || results.length === 0) {
-                sendResponse(res, 401, "text/plain", "Invalid email or password.");
-            } else {
-                const user = results[0];
-                const isValidPassword = await bcrypt.compare(password, user.password);
+        try {
+            const query = "SELECT * FROM users WHERE email = $1";
+            const result = await pool.query(query, [email]);
 
-                if (isValidPassword) {
-                    // Redirecționează utilizatorul către pagina principală
-                    redirect(res, "/main");
-                } else {
-                    sendResponse(res, 401, "text/plain", "Invalid email or password.");
-                }
+            if (result.rowCount === 0) {
+                sendResponse(res, 401, "text/plain", "Invalid email or password.");
+                return;
             }
-        });
+
+            const user = result.rows[0];
+            const isValidPassword = await bcrypt.compare(password, user.password);
+
+            if (isValidPassword) {
+                redirect(res, "/main");
+            } else {
+                sendResponse(res, 401, "text/plain", "Invalid email or password.");
+            }
+        } catch (err) {
+            console.error("Database error during login:", err);
+            sendResponse(res, 500, "text/plain", "Error logging in.");
+        }
     });
 }
 
-function handleGetReviews(req, res, query) {
+async function handleGetReviews(req, res, query) {
     const category = query.category;
     let sqlQuery = `
         SELECT r.entity, r.category, r.rating, r.comment, u.username 
         FROM reviews r
         JOIN users u ON r.user_id = u.id
     `;
-
     const params = [];
+
     if (category) {
-        sqlQuery += " WHERE r.category = ?";
+        sqlQuery += " WHERE r.category = $1";
         params.push(category);
     }
 
-    db.query(sqlQuery, params, (err, results) => {
-        if (err) {
-            console.error("Error fetching reviews:", err);
-            sendResponse(res, 500, "text/plain", "Failed to fetch reviews.");
-        } else {
-            sendResponse(res, 200, "application/json", JSON.stringify(results));
-        }
-    });
+    try {
+        const result = await pool.query(sqlQuery, params);
+        sendResponse(res, 200, "application/json", JSON.stringify(result.rows));
+    } catch (err) {
+        console.error("Error fetching reviews:", err);
+        sendResponse(res, 500, "text/plain", "Failed to fetch reviews.");
+    }
 }
 
-function handleAddReview(req, res) {
+async function handleAddReview(req, res) {
     let body = "";
     req.on("data", (chunk) => {
         body += chunk.toString();
     });
-    req.on("end", () => {
+    req.on("end", async () => {
         const { entity, category, rating, comment } = JSON.parse(body);
 
         if (!entity || !category || !rating || !comment) {
@@ -213,20 +203,17 @@ function handleAddReview(req, res) {
             return;
         }
 
-        const query =
-            "INSERT INTO reviews (user_id, entity, category, rating, comment) VALUES (?, ?, ?, ?, ?)";
-        db.query(
-            query,
-            [1, entity, category, rating, comment], // user_id este hardcodat pentru simplitate
-            (err) => {
-                if (err) {
-                    console.error("Error adding review:", err);
-                    sendResponse(res, 500, "text/plain", "Failed to add review.");
-                } else {
-                    sendResponse(res, 200, "text/plain", "Review added successfully!");
-                }
-            }
-        );
+        try {
+            const query = `
+                INSERT INTO reviews (user_id, entity, category, rating, comment)
+                VALUES ($1, $2, $3, $4, $5)
+            `;
+            await pool.query(query, [1, entity, category, rating, comment]); // user_id este hardcodat pentru simplitate
+            sendResponse(res, 200, "text/plain", "Review added successfully!");
+        } catch (err) {
+            console.error("Error adding review:", err);
+            sendResponse(res, 500, "text/plain", "Failed to add review.");
+        }
     });
 }
 
