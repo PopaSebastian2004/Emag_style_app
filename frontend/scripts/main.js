@@ -32,9 +32,9 @@ document.addEventListener("DOMContentLoaded", () => {
         })
             .then((res) => res.text())
             .then((message) => {
-                alert(message); // Afișează mesajul de confirmare
-                reviewForm.reset(); // Resetează formularul
-                loadReviews(); // Încarcă recenziile după submit
+                alert(message); // Afiseaza mesajul de confirmare
+                reviewForm.reset(); // Reseteaza formularul
+                loadReviews(); // Incarca recenziile după submit
             })
             .catch((err) => {
                 console.error("Error submitting review:", err);
@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/get-reviews")
             .then((res) => res.json())
             .then((reviews) => {
-                reviewsContainer.innerHTML = ""; // Golește lista pentru a evita duplicarea
+                reviewsContainer.innerHTML = ""; // Goleste lista pentru a evita duplicarea
                 reviews.forEach((review) => {
                     const li = document.createElement("li");
                     li.innerHTML = `
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
     logoutBtn.addEventListener("click", () => {
         fetch("/logout", { method: "POST" }) // Trimite o cerere POST pentru logout
             .then(() => {
-                window.location.href = "/"; // Redirecționează la pagina de login
+                window.location.href = "/"; // Redirectioneaza la pagina de login
             })
             .catch((err) => {
                 console.error("Error logging out:", err);

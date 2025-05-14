@@ -67,13 +67,13 @@ function handleRequest(req, res) {
         serveStaticFile(res, path.join(__dirname, "../frontend/pages/main.html"));
     }
 
-    // Rutele pentru fișiere statice (CSS, JS, imagini)
+    // Rutele pentru fisiere statice (CSS, JS, imagini)
     else if (route.startsWith("/styles/") || route.startsWith("/scripts/") || route.startsWith("/pages/")) {
         const filePath = path.join(__dirname, "../frontend", route);
         serveStaticFile(res, filePath);
     }
 
-    // Ruta pentru înregistrare utilizator
+    // Ruta pentru inregistrare utilizator
     else if (route === "/register" && method === "POST") {
         handleRegister(req, res);
     }
@@ -83,12 +83,12 @@ function handleRequest(req, res) {
         handleLogin(req, res);
     }
 
-    // Ruta pentru obținerea recenziilor
+    // Ruta pentru obtinerea recenziilor
     else if (route === "/get-reviews" && method === "GET") {
         handleGetReviews(req, res, parsedUrl.query);
     }
 
-    // Ruta pentru adăugarea unei recenzii
+    // Ruta pentru adaugarea unei recenzii
     else if (route === "/add-review" && method === "POST") {
         handleAddReview(req, res);
     }
@@ -104,7 +104,7 @@ function handleRequest(req, res) {
     }
 }
 
-// Funcțiile pentru înregistrare, autentificare și alte procese
+// Functiile pentru inregistrare, autentificare si alte procese
 async function handleRegister(req, res) {
     let body = "";
     req.on("data", (chunk) => {

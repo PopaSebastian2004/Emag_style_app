@@ -15,12 +15,12 @@ button {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 8px 20px; /* Padding micșorat pentru înălțime redusă */
+    padding: 8px 20px; /* Padding micsorat pentru inaltime redusa */
     font-size: 1rem;
     cursor: pointer;
     border-radius: 5px;
     transition: background-color 0.3s ease;
-    height: 40px; /* Înălțime fixă */
+    height: 40px; /* inaltime fixa*/
 }
 
 button:hover {
@@ -63,18 +63,19 @@ button:hover {
 .content {
     padding: 20px;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between; /* Ajustare pentru aliniere uniforma */
     flex-wrap: wrap;
+    gap: 20px; /* Spatiu între sectiuni pentru a preveni suprapunerea */
 }
 
-.filter-section {
+.filter-section, .review-section {
     background: white;
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    width: 45%;
+    width: 45%; /* Dimensiuni egale pentru ambele sectiuni */
     box-sizing: border-box;
+    min-height: 300px; /* Asigura o inaltime minima consistenta */
 }
 
 .filter-section form input {
@@ -89,21 +90,23 @@ button:hover {
     width: 25%;
 }
 
-.reviews-section, .reviews-list {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 45%;
-    box-sizing: border-box;
-}
-
-.reviews-section form input, .reviews-section form textarea {
+.review-section form input, .review-section form textarea {
     width: 100%;
     padding: 10px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.review-section form textarea {
+    resize: none; /* Dezactiveaza optiunea de redimensionare (drag) */
+}
+
+.reviews-list {
+    width: 100%; /* Secțiunea Reviews ocupa intreaga latime */
+    margin-top: 20px; /* Adauga spatiu intre Share Review și Reviews */
 }
 
 .reviews-list ul {
@@ -156,9 +159,9 @@ button:hover {
 }
 
 .auth-container button {
-    font-weight: 400; /* Subțire */
+    font-weight: 400; /* Subtire */
     font-family: 'Arial', sans-serif; /* Font simplu */
-    text-transform: none; /* Elimină transformările textului */
+    text-transform: none; 
     background-color: #007bff;
     color: white;
     border: none;
