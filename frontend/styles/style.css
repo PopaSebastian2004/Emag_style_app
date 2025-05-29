@@ -1,4 +1,3 @@
-/* General Styles */
 body {
     margin: 0;
     font-family: 'Arial', sans-serif;
@@ -6,28 +5,41 @@ body {
     color: #333;
 }
 
-h1, h2 {
+h1, h2, h3, h4 {
     color: #444;
     text-align: center;
 }
 
-button {
+button, .icon-btn {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 8px 20px; /* Padding micsorat pentru inaltime redusa */
+    padding: 8px 20px;
     font-size: 1rem;
     cursor: pointer;
     border-radius: 5px;
-    transition: background-color 0.3s ease;
-    height: 40px; /* inaltime fixa*/
+    transition: background-color 0.3s;
+    height: 40px;
 }
 
-button:hover {
+button:hover, .icon-btn:hover {
     background-color: #0056b3;
 }
 
-/* Header and Footer */
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    margin-right: 10px;
+    background: #fff;
+    color: #007bff;
+    border: 1px solid #007bff;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .main-header {
     background: #007bff;
     color: white;
@@ -37,9 +49,15 @@ button:hover {
     align-items: center;
 }
 
+.main-header .left-icons { 
+    display: flex;
+    align-items: center;
+}
+
 .main-header h1 {
     margin: 0;
     font-size: 1.5rem;
+    flex: 1 1 auto;
 }
 
 .main-header nav button {
@@ -62,10 +80,6 @@ button:hover {
 /* Main Content */
 .content {
     padding: 20px;
-    display: flex;
-    justify-content: space-between; /* Ajustare pentru aliniere uniforma */
-    flex-wrap: wrap;
-    gap: 20px; /* Spatiu între sectiuni pentru a preveni suprapunerea */
 }
 
 .filter-section, .review-section {
@@ -73,9 +87,9 @@ button:hover {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 45%; /* Dimensiuni egale pentru ambele sectiuni */
+    width: 45%;
     box-sizing: border-box;
-    min-height: 300px; /* Asigura o inaltime minima consistenta */
+    min-height: 300px;
 }
 
 .filter-section form input {
@@ -101,12 +115,12 @@ button:hover {
 }
 
 .review-section form textarea {
-    resize: none; /* Dezactiveaza optiunea de redimensionare (drag) */
+    resize: none;
 }
 
 .reviews-list {
-    width: 100%; /* Secțiunea Reviews ocupa intreaga latime */
-    margin-top: 20px; /* Adauga spatiu intre Share Review și Reviews */
+    width: 100%;
+    margin-top: 20px;
 }
 
 .reviews-list ul {
@@ -120,6 +134,125 @@ button:hover {
     padding: 10px;
     border-radius: 5px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+
+.reviews-list ul li:hover {
+    box-shadow: 0 0 15px #007bff44;
+}
+
+.review-images, .comment-images {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.review-image, .comment-image {
+    max-width: 90px;
+    max-height: 90px;
+    border-radius: 6px;
+    margin: 5px 0;
+    object-fit: cover;
+    box-shadow: 0 0 2px #888;
+}
+
+/* --- POPUP & RESPONSIVE --- */
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.4);
+    overflow-y: auto;
+}
+.popup-content,
+.comment-popup-content {
+    background: #fff;
+    margin: 50px auto;
+    padding: 28px;
+    border-radius: 12px;
+    width: 95%;
+    max-width: 400px;
+    position: relative;
+    box-shadow: 0 0 30px #0004;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+.popup-content .close {
+    position: absolute; top: 8px; right: 18px;
+    font-size: 1.5rem;
+    color: #888;
+    cursor: pointer;
+    z-index: 2;
+}
+.comment-popup-content {
+    max-width: 600px;
+}
+
+@media (max-width: 700px) {
+    .popup-content, .comment-popup-content {
+        max-width: 98vw;
+        padding: 10px;
+        margin: 10px auto;
+        border-radius: 6px;
+        font-size: 1.07em;
+    }
+    .reviews-list,
+    .filter-section, .review-section {
+        width: 100% !important;
+        min-width: unset;
+        min-height: unset;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 8px;
+    }
+    html, body {
+        font-size: 1.06em;
+    }
+}
+@media (max-width: 600px) {
+    .popup-content, .comment-popup-content {
+        max-width: 99vw;
+        min-width: unset;
+        padding: 5px;
+        font-size: 1.04em;
+    }
+    .review-image, .comment-image {
+        width: 70px !important;
+        height: 70px !important;
+        max-width: 38vw;
+        max-height: 38vw;
+    }
+}
+
+.comments-list { list-style: none; padding: 0; }
+.comments-list li {
+    background: #f9f9f9;
+    margin: 6px 0;
+    padding: 7px 5px;
+    border-radius: 6px;
+    font-size: 0.98rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+/* File input and preview */
+input[type="file"] { margin: 10px 0; }
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+textarea { resize: none; min-height: 60px; }
+
+#image-count, #comment-image-count {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 8px;
 }
 
 /* Auth Pages */
@@ -137,30 +270,30 @@ button:hover {
     border-radius: 10px;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
     text-align: center;
-    width: 320px; /* Consistent width for all content */
-    box-sizing: border-box; /* Include padding in width calculations */
+    width: 320px;
+    box-sizing: border-box;
 }
 
 .auth-container form {
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Space between form elements */
+    gap: 15px;
     width: 100%;
 }
 
 .auth-container input, .auth-container button {
-    width: 100%; /* Inputs and button will match container width */
-    height: 40px; /* Set same height for inputs and buttons */
-    padding: 0 12px; /* Adjust padding for better alignment */
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 1rem;
-    box-sizing: border-box; /* Ensure padding is included in width */
+    box-sizing: border-box;
 }
 
 .auth-container button {
-    font-weight: 400; /* Subtire */
-    font-family: 'Arial', sans-serif; /* Font simplu */
+    font-weight: 400;
+    font-family: 'Arial', sans-serif;
     text-transform: none; 
     background-color: #007bff;
     color: white;
@@ -192,4 +325,35 @@ button:hover {
     font-size: 0.9rem;
     margin-bottom: 10px;
     text-align: center;
+}
+
+/* Imagini responsive in popup */
+.review-images, .comment-images {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.review-image, .comment-image {
+    width: 90px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin: 5px 0;
+    box-shadow: 0 0 2px #888;
+    max-width: 99vw;
+    max-height: 25vw;
+}
+
+@media (max-width: 600px) {
+    .review-image, .comment-image {
+        width: 70px;
+        height: 70px;
+        max-width: 38vw;
+        max-height: 38vw;
+    }
+}
+
+/* Asigură-te că popup-ul permite scroll pe mobil */
+body, html {
+    overscroll-behavior: contain;
 }

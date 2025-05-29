@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ro">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,36 +8,75 @@
 </head>
 <body>
     <header class="main-header">
-        <h1>Welcome, <span id="username">User</span>!</h1>
+        <div class="left-icons">
+            <button id="filter-popup-btn" title="Filtreaza" class="icon-btn">
+                <!-- SVG lupa -->
+                <svg xmlns="http://www.w3.org/2000/svg" height="22" width="22" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </button>
+            <button id="add-review-popup-btn" title="Adauga review" class="icon-btn">
+                <!-- SVG plus -->
+                <svg xmlns="http://www.w3.org/2000/svg" height="22" width="22" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+            </button>
+        </div>
+        <h1>Bun venit, <span id="username">User</span>!</h1>
         <nav>
             <button id="logout-btn">Logout</button>
         </nav>
     </header>
-    <main class="content">
-        <section class="filter-section">
-            <h2>Filter Reviews by Category</h2>
+
+    <!-- Popups -->
+    <div id="filter-popup" class="popup">
+        <div class="popup-content">
+            <span class="close" id="close-filter-popup">&times;</span>
+            <h2>Filtreaza dupa categorie</h2>
             <form id="filter-form">
-                <input type="text" id="filter-category" placeholder="Enter category to filter" required>
-                <button type="submit">Filter</button>
+                <input type="text" id="filter-category" placeholder="Categorie">
+                <button type="submit">Filtreaza</button>
             </form>
-        </section>
-        <section class="review-section">
-            <h2>Share Your Review</h2>
-            <form id="review-form">
-                <input type="text" id="entity" placeholder="Entity (e.g., Movie, Product)" required>
-                <input type="text" id="category" placeholder="Category (e.g., Electronics, Movies)" required>
-                <input type="number" id="rating" min="1" max="5" placeholder="Rating (1-5)" required>
-                <textarea id="comment" placeholder="Write your comment here..." required></textarea>
-                <button type="submit">Submit Review</button>
+        </div>
+    </div>
+
+    <div id="add-review-popup" class="popup">
+        <div class="popup-content">
+            <span class="close" id="close-add-review-popup">&times;</span>
+            <h2>Adauga review</h2>
+            <form id="review-form" enctype="multipart/form-data">
+                <input type="text" id="entity" name="entity" placeholder="Entitate (ex: Produs)" required>
+                <input type="text" id="category" name="category" placeholder="Categorie" required>
+                <input type="number" id="rating" name="rating" min="1" max="5" placeholder="Nota (1-5)" required>
+                <textarea id="comment" name="comment" placeholder="Comentariul tau..." required></textarea>
+                <input type="file" id="review-images" name="images" multiple accept="image/*">
+                <p id="image-count">Poti incarca maxim 3 poze.</p>
+                <button type="submit">Trimite review</button>
             </form>
-        </section>
+        </div>
+    </div>
+
+    <main class="content">
         <section class="reviews-list">
-            <h2>Reviews</h2>
+            <h2 id="reviews-title">Review-urile tale</h2>
             <ul id="reviews-container">
                 <!-- Reviews will be dynamically added here -->
             </ul>
         </section>
     </main>
+
+    <!-- Popup pentru comentarii -->
+    <div id="comment-popup" class="popup">
+        <div class="popup-content comment-popup-content">
+            <span class="close" id="close-comment-popup">&times;</span>
+            <div id="comment-popup-body">
+                <!-- Review details and comments loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
     <footer class="main-footer">
         <p>&copy; 2025 Review Application. All rights reserved.</p>
     </footer>
