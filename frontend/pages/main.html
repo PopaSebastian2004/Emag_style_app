@@ -29,7 +29,20 @@
             <button id="logout-btn">Logout</button>
         </nav>
     </header>
-
+    <div id="add-comment-popup" class="popup">
+    <div class="add-comment-popup-content">
+        <span class="close" id="close-add-comment-popup">&times;</span>
+        <h3>Adaugă comentariu</h3>
+        <form id="add-comment-form" enctype="multipart/form-data">
+            <textarea name="comment" placeholder="Adaugă comentariu" required></textarea>
+            <input type="number" name="rating" min="1" max="5" placeholder="Nota (opțional)">
+            <input type="file" name="images" multiple accept="image/*" id="add-comment-images">
+            <p id="add-comment-image-count">Poti incarca maxim 3 poze.</p>
+            <input type="hidden" name="review_id" value="">
+            <button type="submit">Trimite comentariu</button>
+        </form>
+    </div>
+</div>
     <!-- Popups -->
     <div id="filter-popup" class="popup">
         <div class="popup-content">
@@ -66,7 +79,7 @@
             </ul>
         </section>
     </main>
-
+  
     <!-- Popup pentru comentarii -->
     <div id="comment-popup" class="popup">
         <div class="popup-content comment-popup-content">
