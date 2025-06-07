@@ -26,23 +26,73 @@
         </div>
         <h1>Bun venit, <span id="username">User</span>!</h1>
         <nav>
-            <button id="logout-btn">Logout</button>
+            <div class="profile-dropdown">
+                <button id="profile-dropdown-btn" class="icon-btn" title="Profil">
+                    <!-- SVG user icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="4"/>
+                        <path d="M4 20c0-4 4-7 8-7s8 3 8 7"/>
+                    </svg>
+                </button>
+                <div class="profile-dropdown-menu" id="profile-dropdown-menu">
+                    <button id="edit-profile-btn">Editează Profilul</button>
+                    <button id="my-reviews-btn">Review-urile Mele</button>
+                    <button id="my-comments-btn">Comentariile Mele</button>
+                    <button id="logout-btn">Logout</button>
+                </div>
+            </div>
         </nav>
     </header>
-    <div id="add-comment-popup" class="popup">
-    <div class="add-comment-popup-content">
-        <span class="close" id="close-add-comment-popup">&times;</span>
-        <h3>Adaugă comentariu</h3>
-        <form id="add-comment-form" enctype="multipart/form-data">
-            <textarea name="comment" placeholder="Adaugă comentariu" required></textarea>
-            <input type="number" name="rating" min="1" max="5" placeholder="Nota (opțional)">
-            <input type="file" name="images" multiple accept="image/*" id="add-comment-images">
-            <p id="add-comment-image-count">Poti incarca maxim 3 poze.</p>
-            <input type="hidden" name="review_id" value="">
-            <button type="submit">Trimite comentariu</button>
-        </form>
+
+    <!-- Edit Profile Popup -->
+    <div id="edit-profile-popup" class="popup">
+        <div class="popup-content">
+            <span class="close" id="close-edit-profile-popup">&times;</span>
+            <h2>Editează Profilul</h2>
+            <form id="edit-profile-form">
+                <input type="text" id="edit-username" name="username" placeholder="Nume utilizator" required>
+                <input type="email" id="edit-email" name="email" placeholder="Email" required>
+                <input type="password" id="edit-password" name="password" placeholder="Parolă nouă (opțional)">
+                <button type="submit">Salvează Modificările</button>
+            </form>
+        </div>
     </div>
-</div>
+
+    <!-- My Reviews Popup -->
+    <div id="my-reviews-popup" class="popup">
+        <div class="popup-content">
+            <span class="close" id="close-my-reviews-popup">&times;</span>
+            <h2>Review-urile Mele</h2>
+            <ul id="my-reviews-list">
+                <!-- Populat dinamic -->
+            </ul>
+        </div>
+    </div>
+    <!-- My Comments Popup -->
+    <div id="my-comments-popup" class="popup">
+        <div class="popup-content">
+            <span class="close" id="close-my-comments-popup">&times;</span>
+            <h2>Comentariile Mele</h2>
+            <ul id="my-comments-list">
+                <!-- Populat dinamic -->
+            </ul>
+        </div>
+    </div>
+
+    <div id="add-comment-popup" class="popup">
+        <div class="add-comment-popup-content">
+            <span class="close" id="close-add-comment-popup">&times;</span>
+            <h3>Adaugă comentariu</h3>
+            <form id="add-comment-form" enctype="multipart/form-data">
+                <textarea name="comment" placeholder="Adaugă comentariu" required></textarea>
+                <input type="number" name="rating" min="1" max="5" placeholder="Nota (opțional)">
+                <input type="file" name="images" multiple accept="image/*" id="add-comment-images">
+                <p id="add-comment-image-count">Poti incarca maxim 3 poze.</p>
+                <input type="hidden" name="review_id" value="">
+                <button type="submit">Trimite comentariu</button>
+            </form>
+        </div>
+    </div>
     <!-- Popups -->
     <div id="filter-popup" class="popup">
         <div class="popup-content">

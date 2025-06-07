@@ -64,11 +64,10 @@ button:hover, .icon-btn:hover {
     flex: 1 1 auto;
 }
 
-.main-header nav button {
-    background-color: white;
-    color: #007bff;
-    font-weight: bold;
-    padding: 10px 15px;
+.main-header nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .main-footer {
@@ -80,6 +79,66 @@ button:hover, .icon-btn:hover {
     bottom: 0;
     width: 100%;
     z-index: 100;
+}
+
+/* Profile Dropdown Styles */
+.profile-dropdown {
+    position: relative;
+    display: inline-block;
+}
+#profile-dropdown-btn {
+    border-radius: 50%;
+    border: 1.5px solid #007bff;
+    background: #fff;
+    color: #007bff;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#profile-dropdown-btn svg {
+    width: 26px; height: 26px;
+}
+.profile-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 120%;
+    right: 0;
+    min-width: 205px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px #007bff15;
+    z-index: 1200;
+    padding: 10px 0;
+    transition: all 0.18s;
+    flex-direction: column;
+}
+.profile-dropdown-menu.open {
+    display: flex;
+    animation: dropdownAppear 0.18s;
+}
+@keyframes dropdownAppear {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.profile-dropdown-menu button {
+    background: none;
+    color: #007bff;
+    border: none;
+    width: 100%;
+    text-align: left;
+    padding: 13px 27px;
+    font-size: 1.09em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.14s, color 0.14s;
+    border-radius: 7px;
+}
+.profile-dropdown-menu button:hover, .profile-dropdown-menu button:focus {
+    background: #eaf4ff;
+    color: #0056b3;
 }
 
 /* Main Content */

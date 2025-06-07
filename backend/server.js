@@ -202,6 +202,116 @@ async function handleRequest(req, res) {
         return;
     }
 
+    // === PROFIL: Editare user ===
+    if (route === "/edit-profile" && method === "POST") {
+        if (!session.user) return sendResponse(res, 401, "text/plain", "Neautorizat.");
+        let body = "";
+        req.on("data", chunk => body += chunk.toString());
+        req.on("end", async () => {
+            try {
+                const data = JSON.parse(body);
+                let fields = [];
+                let params = [];
+                let idx = 1;
+                if (data.username && data.username !== session.user.username) {
+                    fields.push(`username = $${idx++}`); params.push(data.username);
+                }
+                if (data.email && data.email !== session.user.email) {
+                    fields.push(`email = $${idx++}`); params.push(data.email);
+                }
+                if (data.password) {
+                    const hash = await bcrypt.hash(data.password, 10);
+                    fields.push(`password = $${idx++}`); params.push(hash);
+                }
+                if (!fields.length) return sendResponse(res, 200, "text/plain", "Nicio modificare.");
+                params.push(session.user.id);
+                await pool.query(`UPDATE users SET ${fields.join(", ")} WHERE id = $${idx}`, params);
+                if (data.username) session.user.username = data.username;
+                if (data.email) session.user.email = data.email;
+                sendResponse(res, 200, "text/plain", "Profilul a fost actualizat.");
+            } catch (err) {
+                sendResponse(res, 500, "text/plain", "Eroare la actualizarea profilului.");
+            }
+        });
+        return;
+    }
+
+    // === REVIEW-URI SI COMENTARIILE MELE ===
+    if (route === "/get-my-reviews" && method === "GET") {
+        if (!session.user) return sendResponse(res, 401, "application/json", "[]");
+        try {
+            // Returneaza toate review-urile cu poze (daca exista) pentru user
+            const result = await pool.query("SELECT * FROM reviews WHERE user_id = $1 ORDER BY created_at DESC", [session.user.id]);
+            for (let r of result.rows) {
+                // Imagini pentru review
+                const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id = $1", [r.id]);
+                r.images = imgs.rows.map(img => "/uploads/" + img.image_path);
+            }
+            sendResponse(res, 200, "application/json", JSON.stringify(result.rows));
+        } catch (err) {
+            sendResponse(res, 500, "application/json", "[]");
+        }
+        return;
+    }
+    if (route === "/delete-review" && method === "DELETE") {
+        if (!session.user) return sendResponse(res, 401, "text/plain", "Neautorizat.");
+        const id = parsedUrl.query.id;
+        if (!id) return sendResponse(res, 400, "text/plain", "Lipseste id-ul.");
+        try {
+            // Sterge imagini asociate
+            const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id=$1", [id]);
+            for (const row of imgs.rows) {
+                try { fs.unlinkSync(path.join(UPLOAD_DIR, row.image_path)); } catch {}
+            }
+            await pool.query("DELETE FROM review_images WHERE review_id=$1", [id]);
+            await pool.query("DELETE FROM review_comments WHERE review_id=$1", [id]);
+            await pool.query("DELETE FROM reviews WHERE id=$1 AND user_id=$2", [id, session.user.id]);
+            sendResponse(res, 200, "text/plain", "Review șters.");
+        } catch (err) {
+            sendResponse(res, 500, "text/plain", "Eroare la ștergere.");
+        }
+        return;
+    }
+    if (route === "/get-my-comments" && method === "GET") {
+        if (!session.user) return sendResponse(res, 401, "application/json", "[]");
+        try {
+            // Returneaza toate comentariile userului, cu poze (daca exista), si informatii despre review-ul la care a comentat
+            const result = await pool.query(`
+                SELECT c.*, r.entity, r.category
+                FROM review_comments c
+                JOIN reviews r ON c.review_id = r.id
+                WHERE c.user_id = $1
+                ORDER BY c.created_at DESC
+            `, [session.user.id]);
+            // Adauga imagini la fiecare comentariu
+            for (let c of result.rows) {
+                const imgs = await pool.query("SELECT image_path FROM comment_images WHERE comment_id = $1", [c.id]);
+                c.images = imgs.rows.map(img => "/uploads/" + img.image_path);
+            }
+            sendResponse(res, 200, "application/json", JSON.stringify(result.rows));
+        } catch (err) {
+            sendResponse(res, 500, "application/json", "[]");
+        }
+        return;
+    }
+    if (route === "/delete-comment" && method === "DELETE") {
+        if (!session.user) return sendResponse(res, 401, "text/plain", "Neautorizat.");
+        const id = parsedUrl.query.id;
+        if (!id) return sendResponse(res, 400, "text/plain", "Lipseste id-ul.");
+        try {
+            const imgs = await pool.query("SELECT image_path FROM comment_images WHERE comment_id=$1", [id]);
+            for (const row of imgs.rows) {
+                try { fs.unlinkSync(path.join(UPLOAD_DIR, row.image_path)); } catch {}
+            }
+            await pool.query("DELETE FROM comment_images WHERE comment_id=$1", [id]);
+            await pool.query("DELETE FROM review_comments WHERE id=$1 AND user_id=$2", [id, session.user.id]);
+            sendResponse(res, 200, "text/plain", "Comentariu șters.");
+        } catch (err) {
+            sendResponse(res, 500, "text/plain", "Eroare la ștergere.");
+        }
+        return;
+    }
+
     // === OBTINE REVIEW-URI CU POZE SI COMENTARII (CU POZE) ===
     if (route === "/get-reviews" && method === "GET") {
         let sql = `SELECT r.*, u.username

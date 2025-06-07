@@ -3,6 +3,7 @@ let reviewsTitle = null;
 let allReviews = [];
 let lightboxImages = [];
 let lightboxIndex = 0;
+let currentUser = null;
 
 function showPopup(id) {
     document.getElementById(id).style.display = "block";
@@ -39,9 +40,100 @@ function renderStars(rating, max=5) {
 document.addEventListener("DOMContentLoaded", () => {
     const usernameSpan = document.getElementById("username");
     const reviewsContainer = document.getElementById("reviews-container");
-    const logoutBtn = document.getElementById("logout-btn");
     reviewsTitle = document.getElementById("reviews-title");
-    let currentUser = null;
+
+    // Dropdown profile menu logic
+    const profileBtn = document.getElementById("profile-dropdown-btn");
+    const profileMenu = document.getElementById("profile-dropdown-menu");
+    profileBtn.onclick = (e) => {
+        e.stopPropagation();
+        profileMenu.classList.toggle("open");
+    };
+    document.body.addEventListener("click", () => {
+        profileMenu.classList.remove("open");
+    });
+
+    document.getElementById("edit-profile-btn").onclick = () => {
+        if (currentUser) {
+            document.getElementById("edit-username").value = currentUser.username;
+            document.getElementById("edit-email").value = currentUser.email;
+        }
+        showPopup("edit-profile-popup");
+    };
+
+    document.getElementById("my-reviews-btn").onclick = () => {
+        fetch("/get-my-reviews")
+        .then(res => res.json())
+        .then(reviews => {
+            const ul = document.getElementById("my-reviews-list");
+            ul.innerHTML = "";
+            if (!reviews.length) {
+                ul.innerHTML = "<p>Nu ai review-uri.</p>";
+                return;
+            }
+            for (let review of reviews) {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <div><b>${escapeHTML(review.entity)}</b> <span class="review-list-category">${escapeHTML(review.category)}</span></div>
+                    <div>${escapeHTML(review.comment)}</div>
+                    <button class="delete-my-review-btn" data-id="${review.id}">Șterge</button>
+                `;
+                ul.appendChild(li);
+            }
+            ul.querySelectorAll(".delete-my-review-btn").forEach(btn => {
+                btn.onclick = function() {
+                    if (!confirm("Ești sigur că vrei să ștergi acest review?")) return;
+                    fetch(`/delete-review?id=${btn.dataset.id}`, {method: "DELETE"})
+                        .then(r => r.text())
+                        .then(msg => {
+                            alert(msg);
+                            btn.closest("li").remove();
+                            loadReviews(currentFilter);
+                        });
+                };
+            });
+            showPopup("my-reviews-popup");
+        });
+    };
+
+    document.getElementById("my-comments-btn").onclick = () => {
+        fetch("/get-my-comments")
+        .then(res => res.json())
+        .then(comments => {
+            const ul = document.getElementById("my-comments-list");
+            ul.innerHTML = "";
+            if (!comments.length) {
+                ul.innerHTML = "<p>Nu ai comentarii.</p>";
+                return;
+            }
+            for (let c of comments) {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <div><b>La: ${escapeHTML(c.entity || "review")}</b> | <span class="review-list-category">${escapeHTML(c.category || "")}</span></div>
+                    <div>${escapeHTML(c.comment)}</div>
+                    <button class="delete-my-comment-btn" data-id="${c.id}">Șterge</button>
+                `;
+                ul.appendChild(li);
+            }
+            ul.querySelectorAll(".delete-my-comment-btn").forEach(btn => {
+                btn.onclick = function() {
+                    if (!confirm("Ești sigur că vrei să ștergi acest comentariu?")) return;
+                    fetch(`/delete-comment?id=${btn.dataset.id}`, {method: "DELETE"})
+                        .then(r => r.text())
+                        .then(msg => {
+                            alert(msg);
+                            btn.closest("li").remove();
+                            loadReviews(currentFilter);
+                        });
+                };
+            });
+            showPopup("my-comments-popup");
+        });
+    };
+
+    document.getElementById("close-edit-profile-popup").onclick = () => hidePopup("edit-profile-popup");
+    document.getElementById("close-my-reviews-popup").onclick = () => hidePopup("my-reviews-popup");
+    document.getElementById("close-my-comments-popup").onclick = () => hidePopup("my-comments-popup");
 
     document.getElementById("filter-popup-btn").onclick = () => {
         if (currentFilter.category) {
@@ -143,8 +235,33 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === "Escape") hideLightbox();
     });
 
-    logoutBtn.onclick = () => {
+    document.getElementById("logout-btn").onclick = () => {
         fetch("/logout", {method:"POST"}).then(() => window.location.href = "/");
+    };
+
+    document.getElementById("edit-profile-form").onsubmit = function(e) {
+        e.preventDefault();
+        const formData = {
+            username: document.getElementById("edit-username").value,
+            email: document.getElementById("edit-email").value,
+            password: document.getElementById("edit-password").value
+        };
+        fetch("/edit-profile", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(formData)
+        })
+        .then(res => res.text())
+        .then(msg => {
+            alert(msg);
+            hidePopup("edit-profile-popup");
+            fetch("/get-user").then(r => r.json()).then(data => {
+                if (data.username) {
+                    currentUser = data;
+                    usernameSpan.textContent = data.username;
+                }
+            });
+        }).catch(() => alert("Eroare la editarea profilului!"));
     };
 
     function loadReviews({category = null, mine = false} = {}) {
