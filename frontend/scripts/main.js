@@ -73,11 +73,15 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             for (let review of reviews) {
                 const li = document.createElement("li");
+                li.className = "review-list-item";
                 li.innerHTML = `
-                    <div><b>${escapeHTML(review.entity)}</b> <span class="review-list-category">${escapeHTML(review.category)}</span></div>
-                    <div>${escapeHTML(review.comment)}</div>
-                    <button class="delete-my-review-btn" data-id="${review.id}">Șterge</button>
-                `;
+    <div class="review-list-header">
+        <span class="review-cat-label"><b>Categoria:</b> ${escapeHTML(review.category)}</span>
+        <span class="review-prod-label"><b>Produs:</b> ${escapeHTML(review.entity)}</span>
+    </div>
+    <div class="review-comment">${escapeHTML(review.comment)}</div>
+    <button class="delete-my-review-btn" data-id="${review.id}">Șterge</button>
+`;
                 ul.appendChild(li);
             }
             ul.querySelectorAll(".delete-my-review-btn").forEach(btn => {
@@ -86,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     fetch(`/delete-review?id=${btn.dataset.id}`, {method: "DELETE"})
                         .then(r => r.text())
                         .then(msg => {
-                            alert(msg);
+                            // alert(msg); // Eliminat mesajul!
                             btn.closest("li").remove();
                             loadReviews(currentFilter);
                         });
@@ -108,11 +112,15 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             for (let c of comments) {
                 const li = document.createElement("li");
-                li.innerHTML = `
-                    <div><b>La: ${escapeHTML(c.entity || "review")}</b> | <span class="review-list-category">${escapeHTML(c.category || "")}</span></div>
-                    <div>${escapeHTML(c.comment)}</div>
-                    <button class="delete-my-comment-btn" data-id="${c.id}">Șterge</button>
-                `;
+                li.className = "comment-list-item";
+               li.innerHTML = `
+    <div class="comment-list-header">
+        <span class="comment-cat-label"><b>Categoria:</b> ${escapeHTML(c.category || "")}</span>
+        <span class="comment-prod-label"><b>Produs:</b> ${escapeHTML(c.entity || "review")}</span>
+    </div>
+    <div class="comment-comment">${escapeHTML(c.comment)}</div>
+    <button class="delete-my-comment-btn" data-id="${c.id}">Șterge</button>
+`;
                 ul.appendChild(li);
             }
             ul.querySelectorAll(".delete-my-comment-btn").forEach(btn => {
@@ -121,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     fetch(`/delete-comment?id=${btn.dataset.id}`, {method: "DELETE"})
                         .then(r => r.text())
                         .then(msg => {
-                            alert(msg);
+                            // alert(msg); // Eliminat mesajul!
                             btn.closest("li").remove();
                             loadReviews(currentFilter);
                         });
@@ -196,13 +204,13 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/add-review", { method: "POST", body: formData })
         .then(res => res.text())
         .then(msg => {
-            alert(msg);
+            // alert(msg); // Eliminat mesajul!
             clearPopupForm("add-review-popup");
             hidePopup("add-review-popup");
             currentFilter = {mine: true};
             reviewsTitle.textContent = "Review-urile tale";
             loadReviews(currentFilter);
-        }).catch(() => alert("Eroare la adaugare review!"));
+        }).catch(() => {/* alert("Eroare la adaugare review!"); */});
     };
 
     document.getElementById("review-images").onchange = function() {
@@ -253,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(res => res.text())
         .then(msg => {
-            alert(msg);
+            // alert(msg); // Eliminat mesajul!
             hidePopup("edit-profile-popup");
             fetch("/get-user").then(r => r.json()).then(data => {
                 if (data.username) {
@@ -261,7 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     usernameSpan.textContent = data.username;
                 }
             });
-        }).catch(() => alert("Eroare la editarea profilului!"));
+        }).catch(() => {/* alert("Eroare la editarea profilului!"); */});
     };
 
     function loadReviews({category = null, mine = false} = {}) {
@@ -343,7 +351,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="review-details-popup wow-review-details">
                 <div class="wow-review-row">
                     <span class="wow-label">Categoria:</span>
-                    <span class="review-popup-category">${escapeHTML(review.category).toUpperCase()}</span>
+                    <span class="review-popup-category">${escapeHTML(review.category)}</span>
                     <span class="wow-label" style="margin-left:22px;">Produs:</span>
                     <span class="review-popup-entity">${escapeHTML(review.entity)}</span>
                 </div>
@@ -352,7 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <span class="star-box star-box-main">
                         <span style="margin-right:8px;">${renderStars(review.avg_rating)}</span>
                         <span class="wow-rating-main-val">${notaMedie}</span>
-                        <span class="wow-review-count">(${nrReviewuri} de review-uri)</span>
+                        <span class="wow-review-count">(${nrReviewuri} review-uri)</span>
                     </span>
                     <span class="wow-initial-label"><b>Nota inițială:</b></span>
                     <span class="star-box wow-initial-stars">${renderStars(review.rating)}</span>
@@ -442,12 +450,12 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/add-comment", { method: "POST", body: formData })
         .then(res => res.text())
         .then(msg => {
-            alert(msg);
+            // alert(msg); // Eliminat mesajul!
             hidePopup("add-comment-popup");
             hidePopup("comment-popup");
             loadReviews(currentFilter);
         })
-        .catch(() => alert("Eroare la adaugare comentariu!"));
+        .catch(() => {/* alert("Eroare la adaugare comentariu!"); */});
     };
     document.getElementById("add-comment-images").onchange = function() {
         document.getElementById("add-comment-image-count").textContent =
