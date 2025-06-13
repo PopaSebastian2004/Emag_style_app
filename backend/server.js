@@ -6,6 +6,11 @@ const qs = require("querystring");
 const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+
+const JWT_SECRET = "7065f81e8016f96aec9172d027f1f9e7e16225cd9231b6d6f229c3f112c43a08d8f2c053d74c7f1edb4626495a09e430ad3c9ca6c9f7ab613358550139a8484a"; // Change for prod!
+const JWT_COOKIE_NAME = "jwt_token";
+const TOKEN_EXPIRY = "2h";
 
 // === CONFIG ===
 const UPLOAD_DIR = path.join(__dirname, "uploads");
@@ -19,30 +24,36 @@ const pool = new Pool({
     port: 5432,
 });
 
-// === Sesiuni simple ===
-const sessions = {};
-const SESSION_COOKIE_NAME = "sid";
-function parseCookies(req) {
-    const header = req.headers.cookie || "";
-    return Object.fromEntries(header.split(";").map(c => c.trim().split("=").map(decodeURIComponent)));
-}
+// === JWT Helpers ===
 function setCookie(res, name, value, options = {}) {
     let cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
     if (options.maxAge) cookie += `; Max-Age=${options.maxAge}`;
     if (options.path) cookie += `; Path=${options.path}`;
+    if (options.httpOnly) cookie += "; HttpOnly";
+    if (options.sameSite) cookie += "; SameSite=Strict";
     res.setHeader("Set-Cookie", cookie);
 }
-function getSession(req, res) {
-    const cookies = parseCookies(req);
-    let sid = cookies[SESSION_COOKIE_NAME];
-    let session = sid && sessions[sid];
-    if (!session) {
-        sid = crypto.randomBytes(16).toString("hex");
-        sessions[sid] = { created: Date.now() };
-        setCookie(res, SESSION_COOKIE_NAME, sid, { path: "/" });
-        session = sessions[sid];
+function parseCookies(req) {
+    const header = req.headers.cookie || "";
+    return Object.fromEntries(header.split(";").map(c => c.trim().split("=").map(decodeURIComponent)));
+}
+function generateJWT(payload) {
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+}
+function verifyJWT(token) {
+    try {
+        return jwt.verify(token, JWT_SECRET);
+    } catch {
+        return null;
     }
-    return session;
+}
+function getUserFromJWT(req) {
+    const cookies = parseCookies(req);
+    const token = cookies[JWT_COOKIE_NAME];
+    if (!token) return null;
+    const data = verifyJWT(token);
+    if (!data) return null;
+    return { id: data.id, username: data.username, email: data.email };
 }
 
 // === Helpers ===
@@ -132,8 +143,9 @@ async function handleRequest(req, res) {
     const parsedUrl = url.parse(req.url, true);
     const method = req.method;
     const route = parsedUrl.pathname;
-    const session = getSession(req, res);
+    const user = getUserFromJWT(req);
 
+    // === STATIC, LOGIN, REGISTER ===
     if (route === "/" && method === "GET") {
         serveStaticFile(res, path.join(__dirname, "../frontend/pages/login.html"));
         return;
@@ -152,6 +164,7 @@ async function handleRequest(req, res) {
         return;
     }
 
+    // REGISTER
     if (route === "/register" && method === "POST") {
         let body = "";
         req.on("data", chunk => body += chunk.toString());
@@ -169,6 +182,7 @@ async function handleRequest(req, res) {
         return;
     }
 
+    // LOGIN
     if (route === "/login" && method === "POST") {
         let body = "";
         req.on("data", chunk => body += chunk.toString());
@@ -181,7 +195,8 @@ async function handleRequest(req, res) {
                 const user = result.rows[0];
                 const isValid = await bcrypt.compare(password, user.password);
                 if (!isValid) return sendResponse(res, 401, "text/plain", "Invalid email or password.");
-                session.user = { id: user.id, username: user.username, email: user.email };
+                const token = generateJWT({ id: user.id, username: user.username, email: user.email });
+                setCookie(res, JWT_COOKIE_NAME, token, { path: "/", httpOnly: true, sameSite: true, maxAge: 60*60*2 });
                 redirect(res, "/main");
             } catch (err) {
                 sendResponse(res, 500, "text/plain", "Login error.");
@@ -190,21 +205,28 @@ async function handleRequest(req, res) {
         return;
     }
 
+    // LOGOUT
     if (route === "/logout" && method === "POST") {
-        delete session.user;
+        setCookie(res, JWT_COOKIE_NAME, "", { path: "/", httpOnly: true, sameSite: true, maxAge: 0 });
         sendResponse(res, 200, "text/plain", "Logged out.");
         return;
     }
 
+    // CURRENT USER
     if (route === "/get-user" && method === "GET") {
-        if (!session.user) return sendResponse(res, 401, "application/json", JSON.stringify({}));
-        sendResponse(res, 200, "application/json", JSON.stringify({ username: session.user.username, id: session.user.id, email: session.user.email }));
+        if (!user) return sendResponse(res, 401, "application/json", JSON.stringify({}));
+        sendResponse(res, 200, "application/json", JSON.stringify({ username: user.username, id: user.id, email: user.email }));
+        return;
+    }
+
+    // === SECURED ROUTES BELOW (user must be authenticated) ===
+    if (["/edit-profile", "/get-my-reviews", "/delete-review", "/get-my-comments", "/delete-comment", "/add-review", "/add-comment"].includes(route) && !user) {
+        sendResponse(res, 401, "text/plain", "Neautorizat.");
         return;
     }
 
     // === PROFIL: Editare user ===
     if (route === "/edit-profile" && method === "POST") {
-        if (!session.user) return sendResponse(res, 401, "text/plain", "Neautorizat.");
         let body = "";
         req.on("data", chunk => body += chunk.toString());
         req.on("end", async () => {
@@ -213,10 +235,10 @@ async function handleRequest(req, res) {
                 let fields = [];
                 let params = [];
                 let idx = 1;
-                if (data.username && data.username !== session.user.username) {
+                if (data.username && data.username !== user.username) {
                     fields.push(`username = $${idx++}`); params.push(data.username);
                 }
-                if (data.email && data.email !== session.user.email) {
+                if (data.email && data.email !== user.email) {
                     fields.push(`email = $${idx++}`); params.push(data.email);
                 }
                 if (data.password) {
@@ -224,10 +246,8 @@ async function handleRequest(req, res) {
                     fields.push(`password = $${idx++}`); params.push(hash);
                 }
                 if (!fields.length) return sendResponse(res, 200, "text/plain", "Nicio modificare.");
-                params.push(session.user.id);
+                params.push(user.id);
                 await pool.query(`UPDATE users SET ${fields.join(", ")} WHERE id = $${idx}`, params);
-                if (data.username) session.user.username = data.username;
-                if (data.email) session.user.email = data.email;
                 sendResponse(res, 200, "text/plain", "Profilul a fost actualizat.");
             } catch (err) {
                 sendResponse(res, 500, "text/plain", "Eroare la actualizarea profilului.");
@@ -238,12 +258,9 @@ async function handleRequest(req, res) {
 
     // === REVIEW-URI SI COMENTARIILE MELE ===
     if (route === "/get-my-reviews" && method === "GET") {
-        if (!session.user) return sendResponse(res, 401, "application/json", "[]");
         try {
-            // Returneaza toate review-urile cu poze (daca exista) pentru user
-            const result = await pool.query("SELECT * FROM reviews WHERE user_id = $1 ORDER BY created_at DESC", [session.user.id]);
+            const result = await pool.query("SELECT * FROM reviews WHERE user_id = $1 ORDER BY created_at DESC", [user.id]);
             for (let r of result.rows) {
-                // Imagini pentru review
                 const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id = $1", [r.id]);
                 r.images = imgs.rows.map(img => "/uploads/" + img.image_path);
             }
@@ -254,18 +271,16 @@ async function handleRequest(req, res) {
         return;
     }
     if (route === "/delete-review" && method === "DELETE") {
-        if (!session.user) return sendResponse(res, 401, "text/plain", "Neautorizat.");
         const id = parsedUrl.query.id;
         if (!id) return sendResponse(res, 400, "text/plain", "Lipseste id-ul.");
         try {
-            // Sterge imagini asociate
             const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id=$1", [id]);
             for (const row of imgs.rows) {
                 try { fs.unlinkSync(path.join(UPLOAD_DIR, row.image_path)); } catch {}
             }
             await pool.query("DELETE FROM review_images WHERE review_id=$1", [id]);
             await pool.query("DELETE FROM review_comments WHERE review_id=$1", [id]);
-            await pool.query("DELETE FROM reviews WHERE id=$1 AND user_id=$2", [id, session.user.id]);
+            await pool.query("DELETE FROM reviews WHERE id=$1 AND user_id=$2", [id, user.id]);
             sendResponse(res, 200, "text/plain", "Review șters.");
         } catch (err) {
             sendResponse(res, 500, "text/plain", "Eroare la ștergere.");
@@ -273,17 +288,14 @@ async function handleRequest(req, res) {
         return;
     }
     if (route === "/get-my-comments" && method === "GET") {
-        if (!session.user) return sendResponse(res, 401, "application/json", "[]");
         try {
-            // Returneaza toate comentariile userului, cu poze (daca exista), si informatii despre review-ul la care a comentat
             const result = await pool.query(`
                 SELECT c.*, r.entity, r.category
                 FROM review_comments c
                 JOIN reviews r ON c.review_id = r.id
                 WHERE c.user_id = $1
                 ORDER BY c.created_at DESC
-            `, [session.user.id]);
-            // Adauga imagini la fiecare comentariu
+            `, [user.id]);
             for (let c of result.rows) {
                 const imgs = await pool.query("SELECT image_path FROM comment_images WHERE comment_id = $1", [c.id]);
                 c.images = imgs.rows.map(img => "/uploads/" + img.image_path);
@@ -295,7 +307,6 @@ async function handleRequest(req, res) {
         return;
     }
     if (route === "/delete-comment" && method === "DELETE") {
-        if (!session.user) return sendResponse(res, 401, "text/plain", "Neautorizat.");
         const id = parsedUrl.query.id;
         if (!id) return sendResponse(res, 400, "text/plain", "Lipseste id-ul.");
         try {
@@ -304,7 +315,7 @@ async function handleRequest(req, res) {
                 try { fs.unlinkSync(path.join(UPLOAD_DIR, row.image_path)); } catch {}
             }
             await pool.query("DELETE FROM comment_images WHERE comment_id=$1", [id]);
-            await pool.query("DELETE FROM review_comments WHERE id=$1 AND user_id=$2", [id, session.user.id]);
+            await pool.query("DELETE FROM review_comments WHERE id=$1 AND user_id=$2", [id, user.id]);
             sendResponse(res, 200, "text/plain", "Comentariu șters.");
         } catch (err) {
             sendResponse(res, 500, "text/plain", "Eroare la ștergere.");
@@ -321,19 +332,17 @@ async function handleRequest(req, res) {
         if (parsedUrl.query.category) {
             sql += " WHERE r.category = $1";
             params.push(parsedUrl.query.category);
-        } else if (parsedUrl.query.mine && session.user) {
+        } else if (parsedUrl.query.mine && user) {
             sql += " WHERE r.user_id = $1";
-            params.push(session.user.id);
+            params.push(user.id);
         }
         sql += " ORDER BY r.created_at DESC";
         try {
             const result = await pool.query(sql, params);
             for (let r of result.rows) {
-                // Imagini pentru review
                 const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id = $1", [r.id]);
                 r.images = imgs.rows.map(img => "/uploads/" + img.image_path);
 
-                // Comentarii pentru review
                 const comms = await pool.query(`SELECT c.*, u.username FROM review_comments c JOIN users u ON c.user_id = u.id WHERE c.review_id = $1 ORDER BY c.created_at ASC`, [r.id]);
                 for (let c of comms.rows) {
                     const cimgs = await pool.query("SELECT image_path FROM comment_images WHERE comment_id = $1", [c.id]);
@@ -341,7 +350,6 @@ async function handleRequest(req, res) {
                 }
                 r.comments = comms.rows;
 
-                // Nota medie: review + toate notele din comentarii
                 let total = Number(r.rating);
                 let count = 1;
                 for (let c of comms.rows) {
@@ -360,7 +368,6 @@ async function handleRequest(req, res) {
     }
 
     if (route === "/add-review" && method === "POST") {
-        if (!session.user) return sendResponse(res, 401, "text/plain", "Not authenticated");
         const contentType = req.headers["content-type"] || "";
         if (contentType.startsWith("multipart/form-data")) {
             const boundary = contentType.split("boundary=")[1];
@@ -371,7 +378,7 @@ async function handleRequest(req, res) {
                 try {
                     const result = await pool.query(
                         "INSERT INTO reviews (user_id, entity, category, comment, rating) VALUES ($1,$2,$3,$4,$5) RETURNING id",
-                        [session.user.id, entity, category, comment, rating]
+                        [user.id, entity, category, comment, rating]
                     );
                     const reviewId = result.rows[0].id;
                     for (let fname of files.slice(0,3)) {
@@ -389,7 +396,6 @@ async function handleRequest(req, res) {
     }
 
     if (route === "/add-comment" && method === "POST") {
-        if (!session.user) return sendResponse(res, 401, "text/plain", "Not authenticated");
         const contentType = req.headers["content-type"] || "";
         if (contentType.startsWith("multipart/form-data")) {
             const boundary = contentType.split("boundary=")[1];
@@ -400,7 +406,7 @@ async function handleRequest(req, res) {
                 try {
                     const result = await pool.query(
                         "INSERT INTO review_comments (review_id, user_id, comment, rating) VALUES ($1, $2, $3, $4) RETURNING id",
-                        [review_id, session.user.id, comment, rating || null]
+                        [review_id, user.id, comment, rating || null]
                     );
                     const commentId = result.rows[0].id;
                     for (let fname of files.slice(0,3)) {

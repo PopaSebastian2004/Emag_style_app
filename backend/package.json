@@ -17,6 +17,7 @@
     "express-session": "^1.18.1",
     "formidable": "^3.5.4",
     "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.2",
     "mysql": "^2.18.1",
     "mysql2": "^3.14.1",
     "pdfkit": "^0.17.1",
