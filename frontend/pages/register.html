@@ -9,13 +9,39 @@
 <body class="auth-body">
     <div class="auth-container">
         <h1>Register</h1>
-        <form action="/register" method="POST">
+        <form id="register-form" autocomplete="off">
             <input type="text" name="username" placeholder="Username" required>
             <input type="email" name="email" placeholder="Email" required>
             <input type="password" name="password" placeholder="Password" required>
             <button type="submit">Register</button>
         </form>
+        <p id="register-error" style="color:#d32f2f;display:none;margin-top:8px;"></p>
         <p>Already have an account? <a href="../pages/login.html">Login here</a>.</p>
     </div>
+    <script>
+    document.getElementById("register-form").onsubmit = function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch("/register", {
+            method: "POST",
+            body: new URLSearchParams(formData)
+        })
+        .then(res => res.json().then(data => ({ok: res.ok, ...data})))
+        .then(({ok, error}) => {
+            const err = document.getElementById("register-error");
+            if (!ok) {
+                err.textContent = error || "Registration failed!";
+                err.style.display = "block";
+            } else {
+                err.style.display = "none";
+                window.location.href = "../pages/login.html";
+            }
+        }).catch(() => {
+            const err = document.getElementById("register-error");
+            err.textContent = "Registration failed!";
+            err.style.display = "block";
+        });
+    };
+    </script>
 </body>
 </html>

@@ -139,22 +139,22 @@
         </div>
     </div>
 
-    <div id="add-review-popup" class="popup">
-        <div class="popup-content">
-            <span class="close" id="close-add-review-popup">&times;</span>
-            <h2>Adauga review</h2>
-            <form id="review-form" enctype="multipart/form-data">
-                <input type="text" id="entity" name="entity" placeholder="Entitate (ex: Produs)" required>
-                <input type="text" id="category" name="category" placeholder="Categorie" required>
-                <input type="number" id="rating" name="rating" min="1" max="5" placeholder="Nota (1-5)" required>
-                <textarea id="comment" name="comment" placeholder="Comentariul tau..." required></textarea>
-                <input type="file" id="review-images" name="images" multiple accept="image/*">
-                <p id="image-count">Poti incarca maxim 3 poze.</p>
-                <button type="submit">Trimite review</button>
-            </form>
-        </div>
+<div id="add-review-popup" class="popup">
+    <div class="popup-content">
+        <span class="close" id="close-add-review-popup">&times;</span>
+        <h2>Adauga review</h2>
+        <form id="review-form" enctype="multipart/form-data">
+            <input type="text" id="entity" name="entity" placeholder="Entitate (ex: Produs)" required>
+            <input type="text" id="category" name="category" placeholder="Categorie" required>
+            <input type="number" id="rating" name="rating" min="1" max="5" placeholder="Nota (1-5)" required>
+            <textarea id="comment" name="comment" placeholder="Comentariul tau..." required></textarea>
+            <input type="file" id="review-images" name="images" multiple accept="image/*">
+            <p id="image-count">Poti incarca maxim 3 poze.</p>
+            <button type="submit">Trimite review</button>
+        </form>
+        <p id="review-error-msg" style="color:#d32f2f; margin: 10px 0 0 0; display: none;"></p>
     </div>
-
+</div>
     <main class="content">
         <section class="reviews-list">
             <h2 id="reviews-title">Review-urile tale</h2>

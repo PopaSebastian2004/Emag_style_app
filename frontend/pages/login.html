@@ -9,12 +9,38 @@
 <body class="auth-body">
     <div class="auth-container">
         <h1>Login</h1>
-        <form action="/login" method="POST">
+        <form id="login-form" autocomplete="off">
             <input type="email" name="email" placeholder="Email" required>
             <input type="password" name="password" placeholder="Password" required>
             <button type="submit">Login</button>
         </form>
+        <p id="login-error" style="color:#d32f2f;display:none;margin-top:8px;"></p>
         <p>Don't have an account? <a href="../pages/register.html">Register here</a>.</p>
     </div>
+    <script>
+    document.getElementById("login-form").onsubmit = function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        fetch("/login", {
+            method: "POST",
+            body: new URLSearchParams(formData)
+        })
+        .then(res => res.json().then(data => ({ok: res.ok, ...data})))
+        .then(({ok, error}) => {
+            const err = document.getElementById("login-error");
+            if (!ok) {
+                err.textContent = error || "Invalid email or password!";
+                err.style.display = "block";
+            } else {
+                err.style.display = "none";
+                window.location.href = "/main";
+            }
+        }).catch(() => {
+            const err = document.getElementById("login-error");
+            err.textContent = "Login failed!";
+            err.style.display = "block";
+        });
+    };
+    </script>
 </body>
 </html>

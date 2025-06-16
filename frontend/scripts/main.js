@@ -139,34 +139,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const clasamentBtn = document.getElementById("clasament-btn");
     const clasamentContent = document.getElementById("clasament-content");
     document.getElementById("close-clasament-popup").onclick = () => hidePopup("clasament-popup");
-    clasamentBtn.onclick = function() {
-        clasamentContent.innerHTML = "<p>Se încarcă clasamentul...</p>";
-        showPopup("clasament-popup");
-        fetch("/get-reviews")
-        .then(res=>res.json())
-        .then(reviews => {
-            if (!reviews.length) { clasamentContent.innerHTML = "<p>Nu există date.</p>"; return; }
-            const entities = {};
-            for (const r of reviews) {
-                let arr = entities[r.entity] = entities[r.entity] || [];
-                arr.push(Number(r.avg_rating));
+   clasamentBtn.onclick = function() {
+    clasamentContent.innerHTML = "<p>Se încarcă clasamentul...</p>";
+    showPopup("clasament-popup");
+    fetch("/get-reviews")
+    .then(res=>res.json())
+    .then(reviews => {
+        if (!reviews.length) { clasamentContent.innerHTML = "<p>Nu există date.</p>"; return; }
+        // Pereche unica: { [categorie|entity]: [toate notele] }
+        const entities = {};
+        for (const r of reviews) {
+            const key = r.category + "|" + r.entity;
+            if(!entities[key]) entities[key] = {notes: [], category: r.category, entity: r.entity};
+            entities[key].notes.push(Number(r.rating));
+            if(r.comments && r.comments.length) {
+                for(const c of r.comments) {
+                    if(c.rating) entities[key].notes.push(Number(c.rating));
+                }
             }
-            let arr = [];
-            for (const k in entities) {
-                let avg = entities[k].reduce((a,b)=>a+b,0)/entities[k].length;
-                arr.push({entity:k, avg: avg, count: entities[k].length});
+        }
+        let arr = [];
+        for (const k in entities) {
+            let allNotes = entities[k].notes.filter(x=>!isNaN(x));
+            if (allNotes.length > 2) {
+                let avg = allNotes.reduce((a,b)=>a+b,0)/allNotes.length;
+                arr.push({entity:entities[k].entity, category:entities[k].category, avg: avg, count: allNotes.length});
             }
-            let top = arr.filter(x=>x.count>=2).sort((a,b)=>b.avg-a.avg).slice(0,5);
-            let flop = arr.filter(x=>x.count>=2).sort((a,b)=>a.avg-b.avg).slice(0,5);
-            let html = "<b>Top 5 cele mai bine cotate entități (min 2 review-uri):</b><ol>";
-            for (const x of top) html += `<li><b>${escapeHTML(x.entity)}</b> (${x.count} rev.) — <span style="color:#388e3c;">${x.avg.toFixed(2)}/5</span></li>`;
-            html += "</ol>";
-            html += "<b>Top 5 cele mai detestate entități (min 2 review-uri):</b><ol>";
-            for (const x of flop) html += `<li><b>${escapeHTML(x.entity)}</b> (${x.count} rev.) — <span style="color:#d32f2f;">${x.avg.toFixed(2)}/5</span></li>`;
-            html += "</ol>";
-            clasamentContent.innerHTML = html;
-        });
-    };
+        }
+        let top = arr.sort((a,b)=>b.avg-a.avg).slice(0,5);
+        let flop = [...arr].sort((a,b)=>a.avg-b.avg).slice(0,5);
+        let html = "<b>Top 5 cele mai bine cotate entități (min 3 review-uri):</b><ol>";
+        for (const x of top) html += `<li><span class="clasament-cat">${escapeHTML(x.category)}</span> &mdash; <b>${escapeHTML(x.entity)}</b> (${x.count} review-uri) — <span style="color:#388e3c;">${x.avg.toFixed(2)}/5</span></li>`;
+        html += "</ol>";
+        html += "<b>Top 5 cele mai detestate entități (min 3 review-uri):</b><ol>";
+        for (const x of flop) html += `<li><span class="clasament-cat">${escapeHTML(x.category)}</span> &mdash; <b>${escapeHTML(x.entity)}</b> (${x.count} review-uri) — <span style="color:#d32f2f;">${x.avg.toFixed(2)}/5</span></li>`;
+        html += "</ol>";
+        clasamentContent.innerHTML = html;
+    });
+};
     // ======================= NOU: RSS BUTTON ==================
     document.getElementById("rss-btn").onclick = function() {
         window.open("/clasament.rss", "_blank");
@@ -314,37 +324,49 @@ document.addEventListener("DOMContentLoaded", () => {
         hidePopup("filter-popup");
     };
 
-    document.getElementById("review-form").onsubmit = (e) => {
-        e.preventDefault();
-        const entity = document.getElementById("entity").value;
-        const category = document.getElementById("category").value;
-        const rating = document.getElementById("rating").value;
-        const comment = document.getElementById("comment").value;
-        const imgInput = document.getElementById("review-images");
-        if (imgInput.files.length > 3) {
-            alert("Poti incarca maxim 3 poze!");
+ document.getElementById("review-form").onsubmit = (e) => {
+    e.preventDefault();
+    const entity = document.getElementById("entity").value;
+    const category = document.getElementById("category").value;
+    const rating = document.getElementById("rating").value;
+    const comment = document.getElementById("comment").value;
+    const imgInput = document.getElementById("review-images");
+    const errorMsg = document.getElementById("review-error-msg");
+    errorMsg.style.display = "none";
+    errorMsg.textContent = "";
+
+    if (imgInput.files.length > 3) {
+        errorMsg.textContent = "Poti incarca maxim 3 poze!";
+        errorMsg.style.display = "block";
+        return;
+    }
+    const formData = new FormData();
+    formData.append("entity", entity);
+    formData.append("category", category);
+    formData.append("rating", rating);
+    formData.append("comment", comment);
+    for (let i = 0; i < imgInput.files.length; i++) {
+        formData.append("images", imgInput.files[i]);
+    }
+    fetch("/add-review", { method: "POST", body: formData })
+    .then(res => res.text().then(msg => ({ ok: res.ok, msg })))
+    .then(({ ok, msg }) => {
+        if (!ok && (msg.includes("Exista deja") || msg.includes("Ai deja"))) {
+            errorMsg.textContent = msg;
+            errorMsg.style.display = "block";
             return;
         }
-        const formData = new FormData();
-        formData.append("entity", entity);
-        formData.append("category", category);
-        formData.append("rating", rating);
-        formData.append("comment", comment);
-        for (let i = 0; i < imgInput.files.length; i++) {
-            formData.append("images", imgInput.files[i]);
-        }
-        fetch("/add-review", { method: "POST", body: formData })
-        .then(res => res.text())
-        .then(msg => {
-            // alert(msg); // Eliminat mesajul!
-            clearPopupForm("add-review-popup");
-            hidePopup("add-review-popup");
-            currentFilter = {mine: true};
-            reviewsTitle.textContent = "Review-urile tale";
-            loadReviews(currentFilter);
-        }).catch(() => {/* alert("Eroare la adaugare review!"); */});
-    };
-
+        clearPopupForm("add-review-popup");
+        hidePopup("add-review-popup");
+        currentFilter = {mine: true};
+        reviewsTitle.textContent = "Review-urile tale";
+        loadReviews(currentFilter);
+    })
+    .catch(() => {
+        errorMsg.textContent = "Eroare la adăugarea review-ului!";
+        errorMsg.style.display = "block";
+    });
+};
     document.getElementById("review-images").onchange = function() {
         document.getElementById("image-count").textContent =
             `Incărcat(e): ${this.files.length}/3`;

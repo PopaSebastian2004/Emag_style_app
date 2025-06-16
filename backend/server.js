@@ -164,47 +164,54 @@ async function handleRequest(req, res) {
         return;
     }
 
-    // REGISTER
-    if (route === "/register" && method === "POST") {
-        let body = "";
-        req.on("data", chunk => body += chunk.toString());
-        req.on("end", async () => {
-            const { username, email, password } = qs.parse(body);
-            if (!username || !email || !password) return sendResponse(res, 400, "text/plain", "All fields required.");
-            try {
-                const hashedPassword = await bcrypt.hash(password, 10);
-                await pool.query("INSERT INTO users (username, email, password) VALUES ($1, $2, $3)", [username, email, hashedPassword]);
-                sendResponse(res, 200, "text/plain", "Registration successful.");
-            } catch (err) {
-                sendResponse(res, 500, "text/plain", "Error registering user.");
-            }
-        });
-        return;
-    }
+   // REGISTER
+if (route === "/register" && method === "POST") {
+    let body = "";
+    req.on("data", chunk => body += chunk.toString());
+    req.on("end", async () => {
+        const { username, email, password } = qs.parse(body);
+        if (!username || !email || !password)
+            return sendResponse(res, 400, "application/json", JSON.stringify({error:"All fields required."}));
+        try {
+            // Verifica username sau email duplicat
+            const check = await pool.query("SELECT 1 FROM users WHERE username=$1 OR email=$2 LIMIT 1", [username, email]);
+            if (check.rows.length)
+                return sendResponse(res, 400, "application/json", JSON.stringify({error:"Username sau email deja existent!"}));
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await pool.query("INSERT INTO users (username, email, password) VALUES ($1, $2, $3)", [username, email, hashedPassword]);
+            sendResponse(res, 200, "application/json", JSON.stringify({success:true}));
+        } catch (err) {
+            sendResponse(res, 500, "application/json", JSON.stringify({error:"Error registering user."}));
+        }
+    });
+    return;
+}
 
-    // LOGIN
-    if (route === "/login" && method === "POST") {
-        let body = "";
-        req.on("data", chunk => body += chunk.toString());
-        req.on("end", async () => {
-            const { email, password } = qs.parse(body);
-            if (!email || !password) return sendResponse(res, 400, "text/plain", "All fields required.");
-            try {
-                const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-                if (!result.rows.length) return sendResponse(res, 401, "text/plain", "Invalid email or password.");
-                const user = result.rows[0];
-                const isValid = await bcrypt.compare(password, user.password);
-                if (!isValid) return sendResponse(res, 401, "text/plain", "Invalid email or password.");
-                const token = generateJWT({ id: user.id, username: user.username, email: user.email });
-                setCookie(res, JWT_COOKIE_NAME, token, { path: "/", httpOnly: true, sameSite: true, maxAge: 60*60*2 });
-                redirect(res, "/main");
-            } catch (err) {
-                sendResponse(res, 500, "text/plain", "Login error.");
-            }
-        });
-        return;
-    }
-
+// LOGIN
+if (route === "/login" && method === "POST") {
+    let body = "";
+    req.on("data", chunk => body += chunk.toString());
+    req.on("end", async () => {
+        const { email, password } = qs.parse(body);
+        if (!email || !password)
+            return sendResponse(res, 400, "application/json", JSON.stringify({error:"All fields required."}));
+        try {
+            const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+            if (!result.rows.length)
+                return sendResponse(res, 401, "application/json", JSON.stringify({error:"Invalid email or password."}));
+            const user = result.rows[0];
+            const isValid = await bcrypt.compare(password, user.password);
+            if (!isValid)
+                return sendResponse(res, 401, "application/json", JSON.stringify({error:"Invalid email or password."}));
+            const token = generateJWT({ id: user.id, username: user.username, email: user.email });
+            setCookie(res, JWT_COOKIE_NAME, token, { path: "/", httpOnly: true, sameSite: true, maxAge: 60*60*2 });
+            sendResponse(res, 200, "application/json", JSON.stringify({success:true}));
+        } catch (err) {
+            sendResponse(res, 500, "application/json", JSON.stringify({error:"Login error."}));
+        }
+    });
+    return;
+}
     // LOGOUT
     if (route === "/logout" && method === "POST") {
         setCookie(res, JWT_COOKIE_NAME, "", { path: "/", httpOnly: true, sameSite: true, maxAge: 0 });
@@ -220,26 +227,41 @@ async function handleRequest(req, res) {
     }
 
     // === RSS CLASAMENT ===
-    if (route === "/clasament.rss" && method === "GET") {
-        try {
-            const top = await pool.query(`
-                SELECT entity, AVG(rating) as avg_rating, COUNT(*) as nr
-                FROM reviews
-                GROUP BY entity
-                HAVING COUNT(*) >= 2
-                ORDER BY avg_rating DESC
-                LIMIT 5
-            `);
-            const flop = await pool.query(`
-                SELECT entity, AVG(rating) as avg_rating, COUNT(*) as nr
-                FROM reviews
-                GROUP BY entity
-                HAVING COUNT(*) >= 2
-                ORDER BY avg_rating ASC
-                LIMIT 5
-            `);
-            let now = new Date().toUTCString();
-            let rss = `<?xml version="1.0" encoding="UTF-8" ?>
+ if (route === "/clasament.rss" && method === "GET") {
+    try {
+        // TOP 5: entitate+categorie unic, review-uri + comentarii cu rating
+        const top = await pool.query(`
+            SELECT entity, category, AVG(rating) AS avg_rating, COUNT(*) AS total_reviews
+            FROM (
+                SELECT entity, category, rating FROM reviews
+                UNION ALL
+                SELECT r.entity, r.category, c.rating FROM review_comments c
+                JOIN reviews r ON c.review_id = r.id
+                WHERE c.rating IS NOT NULL
+            ) AS all_ratings
+            GROUP BY entity, category
+            HAVING COUNT(*) > 2
+            ORDER BY avg_rating DESC
+            LIMIT 5
+        `);
+
+        const flop = await pool.query(`
+            SELECT entity, category, AVG(rating) AS avg_rating, COUNT(*) AS total_reviews
+            FROM (
+                SELECT entity, category, rating FROM reviews
+                UNION ALL
+                SELECT r.entity, r.category, c.rating FROM review_comments c
+                JOIN reviews r ON c.review_id = r.id
+                WHERE c.rating IS NOT NULL
+            ) AS all_ratings
+            GROUP BY entity, category
+            HAVING COUNT(*) > 2
+            ORDER BY avg_rating ASC
+            LIMIT 5
+        `);
+
+        let now = new Date().toUTCString();
+        let rss = `<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
     <title>Clasament entități - ReviewApp</title>
@@ -250,7 +272,9 @@ async function handleRequest(req, res) {
     <item>
         <title>Top 5 Dezirabile</title>
         <description><![CDATA[<ol>
-${top.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.nr} review-uri)</li>`).join('\n')}
+${top.rows.map(x=>
+    `<li><span style="color:#2196f3;"><b>${x.category}</b></span> &mdash; <b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.total_reviews} review-uri)</li>`
+).join('\n')}
 </ol>]]></description>
         <pubDate>${now}</pubDate>
         <guid isPermaLink="false">top5</guid>
@@ -258,7 +282,9 @@ ${top.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 
     <item>
         <title>Top 5 Detestate</title>
         <description><![CDATA[<ol>
-${flop.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.nr} review-uri)</li>`).join('\n')}
+${flop.rows.map(x=>
+    `<li><span style="color:#2196f3;"><b>${x.category}</b></span> &mdash; <b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.total_reviews} review-uri)</li>`
+).join('\n')}
 </ol>]]></description>
         <pubDate>${now}</pubDate>
         <guid isPermaLink="false">flop5</guid>
@@ -266,14 +292,14 @@ ${flop.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5
 </channel>
 </rss>
 `;
-            res.writeHead(200, { 'Content-Type': 'application/rss+xml; charset=UTF-8' });
-            res.end(rss);
-        } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
-            res.end("Eroare RSS");
-        }
-        return;
+        res.writeHead(200, { 'Content-Type': 'application/rss+xml; charset=UTF-8' });
+        res.end(rss);
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
+        res.end("Eroare RSS");
     }
+    return;
+}
 
     // === SECURED ROUTES BELOW (user must be authenticated) ===
     if (["/edit-profile", "/get-my-reviews", "/delete-review", "/get-my-comments", "/delete-comment", "/add-review", "/add-comment"].includes(route) && !user) {
@@ -282,36 +308,44 @@ ${flop.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5
     }
 
     // === PROFIL: Editare user ===
-    if (route === "/edit-profile" && method === "POST") {
-        let body = "";
-        req.on("data", chunk => body += chunk.toString());
-        req.on("end", async () => {
-            try {
-                const data = JSON.parse(body);
-                let fields = [];
-                let params = [];
-                let idx = 1;
-                if (data.username && data.username !== user.username) {
-                    fields.push(`username = $${idx++}`); params.push(data.username);
-                }
-                if (data.email && data.email !== user.email) {
-                    fields.push(`email = $${idx++}`); params.push(data.email);
-                }
-                if (data.password) {
-                    const hash = await bcrypt.hash(data.password, 10);
-                    fields.push(`password = $${idx++}`); params.push(hash);
-                }
-                if (!fields.length) return sendResponse(res, 200, "text/plain", "Nicio modificare.");
-                params.push(user.id);
-                await pool.query(`UPDATE users SET ${fields.join(", ")} WHERE id = $${idx}`, params);
-                sendResponse(res, 200, "text/plain", "Profilul a fost actualizat.");
-            } catch (err) {
-                sendResponse(res, 500, "text/plain", "Eroare la actualizarea profilului.");
+   if (route === "/edit-profile" && method === "POST") {
+    let body = "";
+    req.on("data", chunk => body += chunk.toString());
+    req.on("end", async () => {
+        try {
+            const data = JSON.parse(body);
+            let fields = [];
+            let params = [];
+            let idx = 1;
+            if (data.username && data.username !== user.username) {
+                fields.push(`username = $${idx++}`); params.push(data.username);
             }
-        });
-        return;
-    }
+            if (data.email && data.email !== user.email) {
+                fields.push(`email = $${idx++}`); params.push(data.email);
+            }
+            if (data.password) {
+                const hash = await bcrypt.hash(data.password, 10);
+                fields.push(`password = $${idx++}`); params.push(hash);
+            }
+            if (!fields.length) return sendResponse(res, 200, "text/plain", "Nicio modificare.");
+            params.push(user.id);
+            await pool.query(`UPDATE users SET ${fields.join(", ")} WHERE id = $${idx}`, params);
 
+            // === Ia datele userului updatat și regenerează JWT ===
+            const updatedUser = await pool.query("SELECT id, username, email FROM users WHERE id = $1", [user.id]);
+            if (updatedUser.rows.length) {
+                const nu = updatedUser.rows[0];
+                const token = generateJWT({ id: nu.id, username: nu.username, email: nu.email });
+                setCookie(res, JWT_COOKIE_NAME, token, { path: "/", httpOnly: true, sameSite: true, maxAge: 60*60*2 });
+            }
+
+            sendResponse(res, 200, "text/plain", "Profilul a fost actualizat.");
+        } catch (err) {
+            sendResponse(res, 500, "text/plain", "Eroare la actualizarea profilului.");
+        }
+    });
+    return;
+}
     // === REVIEW-URI SI COMENTARIILE MELE ===
     if (route === "/get-my-reviews" && method === "GET") {
         try {
@@ -423,33 +457,46 @@ ${flop.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5
         return;
     }
 
-    if (route === "/add-review" && method === "POST") {
-        const contentType = req.headers["content-type"] || "";
-        if (contentType.startsWith("multipart/form-data")) {
-            const boundary = contentType.split("boundary=")[1];
-            parseMultipartData(req, boundary, async (fields, files) => {
-                const { entity, category, comment, rating } = fields;
-                if (!entity || !category || !comment || !rating)
-                    return sendResponse(res, 400, "text/plain", "All fields required.");
-                try {
-                    const result = await pool.query(
-                        "INSERT INTO reviews (user_id, entity, category, comment, rating) VALUES ($1,$2,$3,$4,$5) RETURNING id",
-                        [user.id, entity, category, comment, rating]
-                    );
-                    const reviewId = result.rows[0].id;
-                    for (let fname of files.slice(0,3)) {
-                        await pool.query("INSERT INTO review_images (review_id, image_path) VALUES ($1,$2)", [reviewId, fname]);
-                    }
-                    sendResponse(res, 200, "text/plain", "Review added.");
-                } catch (err) {
-                    sendResponse(res, 500, "text/plain", "Error inserting review.");
+  if (route === "/add-review" && method === "POST") {
+    const contentType = req.headers["content-type"] || "";
+    if (contentType.startsWith("multipart/form-data")) {
+        const boundary = contentType.split("boundary=")[1];
+        parseMultipartData(req, boundary, async (fields, files) => {
+            const { entity, category, comment, rating } = fields;
+            if (!entity || !category || !comment || !rating)
+                return sendResponse(res, 400, "text/plain", "All fields required.");
+            try {
+                // Verificare existenta
+                const exists = await pool.query(
+                    "SELECT 1 FROM reviews WHERE entity = $1 AND category = $2 LIMIT 1",
+                    [entity, category]
+                );
+                if (exists.rows.length) {
+                    return sendResponse(res, 400, "text/plain", "Exista deja acest produs in aceasta categorie!");
                 }
-            });
-        } else {
-            sendResponse(res, 400, "text/plain", "Invalid upload.");
-        }
-        return;
+
+                const result = await pool.query(
+                    "INSERT INTO reviews (user_id, entity, category, comment, rating) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+                    [user.id, entity, category, comment, rating]
+                );
+                const reviewId = result.rows[0].id;
+                for (let fname of files.slice(0,3)) {
+                    await pool.query("INSERT INTO review_images (review_id, image_path) VALUES ($1,$2)", [reviewId, fname]);
+                }
+                sendResponse(res, 200, "text/plain", "Review added.");
+            } catch (err) {
+                // Dacă baza de date dă eroare de constrângere unică
+                if (err.code === '23505') {
+                    return sendResponse(res, 400, "text/plain", "Exista deja acest produs in aceasta categorie!");
+                }
+                sendResponse(res, 500, "text/plain", "Error inserting review.");
+            }
+        });
+    } else {
+        sendResponse(res, 400, "text/plain", "Invalid upload.");
     }
+    return;
+}
 
     if (route === "/add-comment" && method === "POST") {
         const contentType = req.headers["content-type"] || "";
