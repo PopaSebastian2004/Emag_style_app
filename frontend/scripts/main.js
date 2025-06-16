@@ -42,6 +42,138 @@ document.addEventListener("DOMContentLoaded", () => {
     const reviewsContainer = document.getElementById("reviews-container");
     reviewsTitle = document.getElementById("reviews-title");
 
+    // ======================= NOU: EXPORT CSV ==================
+    document.getElementById("export-csv-btn").onclick = function() {
+        fetch("/get-reviews")
+        .then(res => res.json())
+        .then(data => {
+            let csv = "Id,Entitate,Categorie,Nota,Comentariu,Autor\n";
+            data.forEach(r => {
+                csv += [r.id, r.entity, r.category, r.avg_rating, (r.comment||"").replace(/\n/g," "), r.username].map(x => `"${(x||"").toString().replace(/"/g,'""')}"`).join(",") + "\n";
+            });
+            const blob = new Blob([csv], {type: "text/csv"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "inventar_reviews.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    };
+    // ======================= NOU: EXPORT PDF ==================
+    document.getElementById("export-pdf-btn").onclick = function() {
+        fetch("/get-reviews")
+        .then(res => res.json())
+        .then(data => {
+            if (typeof window.jspdf === "undefined" || !window.jspdf) {
+                const script = document.createElement("script");
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+                script.onload = genPdf;
+                document.body.appendChild(script);
+            } else genPdf();
+            function genPdf() {
+                const { jsPDF } = window.jspdf || window.jspdf_umd;
+                const doc = new jsPDF();
+                doc.setFontSize(13);
+                doc.text("Inventar Reviews", 15, 15);
+                let y = 25;
+                doc.setFontSize(10);
+                doc.text("Id", 10, y);
+                doc.text("Entitate", 25, y);
+                doc.text("Categorie", 65, y);
+                doc.text("Nota", 105, y);
+                doc.text("Autor", 125, y);
+                doc.text("Comentariu", 150, y);
+                y += 7;
+                for (const r of data) {
+                    if (y > 270) { doc.addPage(); y = 20; }
+                    doc.text(String(r.id), 10, y);
+                    doc.text(String(r.entity), 25, y, {maxWidth: 35});
+                    doc.text(String(r.category), 65, y, {maxWidth: 35});
+                    doc.text(String(Number(r.avg_rating).toFixed(2)), 105, y);
+                    doc.text(String(r.username), 125, y, {maxWidth: 23});
+                    doc.text(String(r.comment||"").substring(0,45), 150, y, {maxWidth: 55});
+                    y += 7;
+                }
+                doc.save("inventar_reviews.pdf");
+            }
+        });
+    };
+    // ======================= NOU: POPUP STATISTICI ==============
+    const statsBtn = document.getElementById("stats-btn");
+    const statsContent = document.getElementById("stats-content");
+    document.getElementById("close-stats-popup").onclick = () => hidePopup("stats-popup");
+    statsBtn.onclick = function() {
+        statsContent.innerHTML = "<p>Se încarcă statistici...</p>";
+        showPopup("stats-popup");
+        fetch("/get-reviews")
+        .then(res=>res.json())
+        .then(reviews => {
+            if (!reviews.length) { statsContent.innerHTML = "<p>Nu există date.</p>"; return; }
+            const byCat = {}, byUser = {}, ratingsCat = {};
+            for (const r of reviews) {
+                byCat[r.category] = (byCat[r.category]||0)+1;
+                byUser[r.username] = (byUser[r.username]||0)+1;
+                ratingsCat[r.category] = ratingsCat[r.category] || [];
+                ratingsCat[r.category].push(Number(r.avg_rating));
+            }
+            let out = `<b>Total review-uri:</b> ${reviews.length}<br><br>`;
+            out += `<b>Pe categorii:</b><ul>`;
+            for (const k in byCat) out += `<li><b>${escapeHTML(k)}:</b> ${byCat[k]}</li>`;
+            out += "</ul>";
+            out += `<b>Medie notă pe categorie:</b><ul>`;
+            for (const k in ratingsCat) {
+                let medie = (ratingsCat[k].reduce((a,b)=>a+b,0)/ratingsCat[k].length).toFixed(2);
+                out += `<li><b>${escapeHTML(k)}:</b> ${medie}</li>`;
+            }
+            out += "</ul>";
+            out += `<b>Top utilizatori (nr. review-uri):</b><ul>`;
+            let topUsers = Object.entries(byUser).sort((a,b)=>b[1]-a[1]).slice(0,5);
+            for (const [u, n] of topUsers)
+                out += `<li><b>${escapeHTML(u)}:</b> ${n}</li>`;
+            out += "</ul>";
+            statsContent.innerHTML = out;
+        });
+    };
+    // ======================= NOU: POPUP CLASAMENT ==============
+    const clasamentBtn = document.getElementById("clasament-btn");
+    const clasamentContent = document.getElementById("clasament-content");
+    document.getElementById("close-clasament-popup").onclick = () => hidePopup("clasament-popup");
+    clasamentBtn.onclick = function() {
+        clasamentContent.innerHTML = "<p>Se încarcă clasamentul...</p>";
+        showPopup("clasament-popup");
+        fetch("/get-reviews")
+        .then(res=>res.json())
+        .then(reviews => {
+            if (!reviews.length) { clasamentContent.innerHTML = "<p>Nu există date.</p>"; return; }
+            const entities = {};
+            for (const r of reviews) {
+                let arr = entities[r.entity] = entities[r.entity] || [];
+                arr.push(Number(r.avg_rating));
+            }
+            let arr = [];
+            for (const k in entities) {
+                let avg = entities[k].reduce((a,b)=>a+b,0)/entities[k].length;
+                arr.push({entity:k, avg: avg, count: entities[k].length});
+            }
+            let top = arr.filter(x=>x.count>=2).sort((a,b)=>b.avg-a.avg).slice(0,5);
+            let flop = arr.filter(x=>x.count>=2).sort((a,b)=>a.avg-b.avg).slice(0,5);
+            let html = "<b>Top 5 cele mai bine cotate entități (min 2 review-uri):</b><ol>";
+            for (const x of top) html += `<li><b>${escapeHTML(x.entity)}</b> (${x.count} rev.) — <span style="color:#388e3c;">${x.avg.toFixed(2)}/5</span></li>`;
+            html += "</ol>";
+            html += "<b>Top 5 cele mai detestate entități (min 2 review-uri):</b><ol>";
+            for (const x of flop) html += `<li><b>${escapeHTML(x.entity)}</b> (${x.count} rev.) — <span style="color:#d32f2f;">${x.avg.toFixed(2)}/5</span></li>`;
+            html += "</ol>";
+            clasamentContent.innerHTML = html;
+        });
+    };
+    // ======================= NOU: RSS BUTTON ==================
+    document.getElementById("rss-btn").onclick = function() {
+        window.open("/clasament.rss", "_blank");
+    };
+
+    // ========== CODUL TĂU VECHE (restul funcțiilor, UI, reviews, comments etc.) ==========
+
     // Dropdown profile menu logic
     const profileBtn = document.getElementById("profile-dropdown-btn");
     const profileMenu = document.getElementById("profile-dropdown-menu");

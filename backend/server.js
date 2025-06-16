@@ -219,6 +219,61 @@ async function handleRequest(req, res) {
         return;
     }
 
+    // === RSS CLASAMENT ===
+    if (route === "/clasament.rss" && method === "GET") {
+        try {
+            const top = await pool.query(`
+                SELECT entity, AVG(rating) as avg_rating, COUNT(*) as nr
+                FROM reviews
+                GROUP BY entity
+                HAVING COUNT(*) >= 2
+                ORDER BY avg_rating DESC
+                LIMIT 5
+            `);
+            const flop = await pool.query(`
+                SELECT entity, AVG(rating) as avg_rating, COUNT(*) as nr
+                FROM reviews
+                GROUP BY entity
+                HAVING COUNT(*) >= 2
+                ORDER BY avg_rating ASC
+                LIMIT 5
+            `);
+            let now = new Date().toUTCString();
+            let rss = `<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+<channel>
+    <title>Clasament entități - ReviewApp</title>
+    <link>http://localhost:${port}/clasament.rss</link>
+    <description>Clasamentul celor mai apreciate și detestate entități</description>
+    <lastBuildDate>${now}</lastBuildDate>
+    <item>
+        <title>Top 5 Dezirabile</title>
+        <description><![CDATA[<ol>
+${top.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.nr} review-uri)</li>`).join('\n')}
+</ol>]]></description>
+        <pubDate>${now}</pubDate>
+        <guid>top5</guid>
+    </item>
+    <item>
+        <title>Top 5 Detestate</title>
+        <description><![CDATA[<ol>
+${flop.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.nr} review-uri)</li>`).join('\n')}
+</ol>]]></description>
+        <pubDate>${now}</pubDate>
+        <guid>flop5</guid>
+    </item>
+</channel>
+</rss>
+`;
+            res.writeHead(200, { 'Content-Type': 'application/rss+xml; charset=UTF-8' });
+            res.end(rss);
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
+            res.end("Eroare RSS");
+        }
+        return;
+    }
+
     // === SECURED ROUTES BELOW (user must be authenticated) ===
     if (["/edit-profile", "/get-my-reviews", "/delete-review", "/get-my-comments", "/delete-comment", "/add-review", "/add-comment"].includes(route) && !user) {
         sendResponse(res, 401, "text/plain", "Neautorizat.");
@@ -426,7 +481,7 @@ async function handleRequest(req, res) {
     sendResponse(res, 404, "text/plain", "Not Found");
 }
 
-const port = 3007;
+const port = 3008;
 const server = http.createServer(handleRequest);
 server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
