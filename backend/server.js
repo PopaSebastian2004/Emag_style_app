@@ -240,10 +240,11 @@ async function handleRequest(req, res) {
             `);
             let now = new Date().toUTCString();
             let rss = `<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
     <title>Clasament entități - ReviewApp</title>
     <link>http://localhost:${port}/clasament.rss</link>
+    <atom:link href="http://localhost:${port}/clasament.rss" rel="self" type="application/rss+xml" />
     <description>Clasamentul celor mai apreciate și detestate entități</description>
     <lastBuildDate>${now}</lastBuildDate>
     <item>
@@ -252,7 +253,7 @@ async function handleRequest(req, res) {
 ${top.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.nr} review-uri)</li>`).join('\n')}
 </ol>]]></description>
         <pubDate>${now}</pubDate>
-        <guid>top5</guid>
+        <guid isPermaLink="false">top5</guid>
     </item>
     <item>
         <title>Top 5 Detestate</title>
@@ -260,7 +261,7 @@ ${top.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 
 ${flop.rows.map(x=>`<li><b>${x.entity}</b>: ${Number(x.avg_rating).toFixed(2)}/5 (${x.nr} review-uri)</li>`).join('\n')}
 </ol>]]></description>
         <pubDate>${now}</pubDate>
-        <guid>flop5</guid>
+        <guid isPermaLink="false">flop5</guid>
     </item>
 </channel>
 </rss>
