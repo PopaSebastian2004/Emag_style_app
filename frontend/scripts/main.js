@@ -42,15 +42,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const reviewsContainer = document.getElementById("reviews-container");
     reviewsTitle = document.getElementById("reviews-title");
 
-    // ======================= NOU: EXPORT CSV ==================
+    // ======================= EXPORT CSV (server-side, date corecte) ==================
     document.getElementById("export-csv-btn").onclick = function() {
-        fetch("/get-reviews")
-        .then(res => res.json())
-        .then(data => {
-            let csv = "Id,Entitate,Categorie,Nota,Comentariu,Autor\n";
-            data.forEach(r => {
-                csv += [r.id, r.entity, r.category, r.avg_rating, (r.comment||"").replace(/\n/g," "), r.username].map(x => `"${(x||"").toString().replace(/"/g,'""')}"`).join(",") + "\n";
-            });
+        fetch("/export-csv")
+        .then(res => res.text())
+        .then(csv => {
             const blob = new Blob([csv], {type: "text/csv"});
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -60,7 +56,64 @@ document.addEventListener("DOMContentLoaded", () => {
             URL.revokeObjectURL(url);
         });
     };
-    // ======================= NOU: EXPORT PDF ==================
+
+    // ======================= EXPORT JSON ==================
+    document.getElementById("export-json-btn").onclick = function() {
+        fetch("/get-reviews")
+        .then(res => res.json())
+        .then(data => {
+            const str = JSON.stringify(data, null, 2);
+            const blob = new Blob([str], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "inventar_reviews.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    };
+
+    // ======================= IMPORT CSV/JSON (popup unic) ==================
+    document.getElementById("import-csv-btn").onclick = () => showImportPopup("csv");
+    document.getElementById("import-json-btn").onclick = () => showImportPopup("json");
+
+    function showImportPopup(type) {
+        const popup = document.getElementById("import-popup");
+        popup.style.display = "block";
+        document.body.classList.add("popup-open");
+        popup.querySelector("h2").textContent = `Importă date (${type.toUpperCase()})`;
+        popup.querySelector("#import-file").accept = type === "csv" ? ".csv,text/csv" : ".json,application/json";
+        popup.dataset.type = type;
+    }
+    document.getElementById("close-import-popup").onclick = () => {
+        document.getElementById("import-popup").style.display = "none";
+        document.body.classList.remove("popup-open");
+    };
+    document.getElementById("import-form").onsubmit = function(e) {
+        e.preventDefault();
+        const popup = document.getElementById("import-popup");
+        const type = popup.dataset.type;
+        const fileInput = document.getElementById("import-file");
+        const errMsg = document.getElementById("import-err-msg");
+        errMsg.style.display = "none";
+        if (!fileInput.files.length) return;
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        fetch(`/import-${type}`, { method: "POST", body: formData })
+            .then(res => res.text().then(msg => ({ok: res.ok, msg})))
+            .then(({ok, msg}) => {
+                if (!ok) {
+                    errMsg.textContent = msg;
+                    errMsg.style.display = "block";
+                    return;
+                }
+                popup.style.display = "none";
+                document.body.classList.remove("popup-open");
+                loadReviews(currentFilter);
+            });
+    };
+
+    // ======================= EXPORT PDF ==================
     document.getElementById("export-pdf-btn").onclick = function() {
         fetch("/get-reviews")
         .then(res => res.json())
@@ -99,7 +152,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     };
-    // ======================= NOU: POPUP STATISTICI ==============
+
+    // ======================= POPUP STATISTICI ==================
     const statsBtn = document.getElementById("stats-btn");
     const statsContent = document.getElementById("stats-content");
     document.getElementById("close-stats-popup").onclick = () => hidePopup("stats-popup");
@@ -135,7 +189,8 @@ document.addEventListener("DOMContentLoaded", () => {
             statsContent.innerHTML = out;
         });
     };
-    // ======================= NOU: POPUP CLASAMENT ==============
+
+    // ======================= POPUP CLASAMENT ==================
     const clasamentBtn = document.getElementById("clasament-btn");
     const clasamentContent = document.getElementById("clasament-content");
     document.getElementById("close-clasament-popup").onclick = () => hidePopup("clasament-popup");
@@ -180,57 +235,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ======================= FILTRARE AUTOCOMPLETE + LISTA CATEGORII VIZIBILE ==================
     let allCategories = [];
-function fetchAllCategories() {
-    fetch("/get-reviews")
-        .then(res => res.json())
-        .then(reviews => {
-            allCategories = Array.from(new Set(reviews.map(r => r.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ro"));
-            renderAllCategoriesList(allCategories);
+    function fetchAllCategories() {
+        fetch("/get-reviews")
+            .then(res => res.json())
+            .then(reviews => {
+                allCategories = Array.from(new Set(reviews.map(r => r.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ro"));
+                renderAllCategoriesList(allCategories);
+            });
+    }
+    fetchAllCategories();
+
+    const filterCategoryInput = document.getElementById("filter-category");
+    const filterCategoryList = document.getElementById("filter-category-list");
+    const allCategoriesList = document.getElementById("all-categories-list");
+
+    function renderAllCategoriesList(filtered) {
+        allCategoriesList.innerHTML = "";
+        filtered.forEach(cat => {
+            const span = document.createElement("span");
+            span.className = "cat-badge";
+            span.textContent = cat;
+            span.onclick = () => {
+                filterCategoryInput.value = cat;
+                filterCategoryInput.focus();
+                renderAllCategoriesList([cat]);
+            };
+            allCategoriesList.appendChild(span);
         });
-}
-fetchAllCategories();
+    }
 
-const filterCategoryInput = document.getElementById("filter-category");
-const filterCategoryList = document.getElementById("filter-category-list");
-const allCategoriesList = document.getElementById("all-categories-list");
-
-function renderAllCategoriesList(filtered) {
-    allCategoriesList.innerHTML = "";
-    filtered.forEach(cat => {
-        const span = document.createElement("span");
-        span.className = "cat-badge";
-        span.textContent = cat;
-        span.onclick = () => {
-            filterCategoryInput.value = cat;
-            // opțional: completează și filtrarea dacă vrei
-            // document.getElementById("filter-form").dispatchEvent(new Event('submit', {cancelable: true}));
-            // sau doar focus și "suggest"
-            filterCategoryInput.focus();
-            renderAllCategoriesList([cat]);
-        };
-        allCategoriesList.appendChild(span);
+    filterCategoryInput.addEventListener("input", () => {
+        const val = filterCategoryInput.value.trim().toLowerCase();
+        const filtered = allCategories.filter(cat => cat.toLowerCase().startsWith(val));
+        renderAllCategoriesList(filtered);
     });
-}
 
-// Fără dublură: autocomplete dropdown doar dacă vrei, badge-urile doar sub buton!
-// Schimbă badge-urile în funcție de ce tastezi:
-filterCategoryInput.addEventListener("input", () => {
-    const val = filterCategoryInput.value.trim().toLowerCase();
-    const filtered = allCategories.filter(cat => cat.toLowerCase().startsWith(val));
-    renderAllCategoriesList(filtered);
-    // Dacă vrei și dropdown de autocomplete, lasă și codul de mai jos:
-    // renderCategoryAutocomplete(filtered);
-});
+    document.getElementById("filter-popup-btn").addEventListener("click", () => {
+        setTimeout(() => {
+            filterCategoryInput.value = "";
+            renderAllCategoriesList(allCategories);
+        }, 100);
+    });
 
-// Când popup-ul se deschide (sau golim inputul), afișăm TOATE badge-urile:
-document.getElementById("filter-popup-btn").addEventListener("click", () => {
-    setTimeout(() => {
-        filterCategoryInput.value = "";
-        renderAllCategoriesList(allCategories);
-    }, 100);
-});
-
-    // ======================= NOU: RSS BUTTON ==================
+    // ======================= RSS BUTTON ==================
     document.getElementById("rss-btn").onclick = function() {
         window.open("/clasament.rss", "_blank");
     };

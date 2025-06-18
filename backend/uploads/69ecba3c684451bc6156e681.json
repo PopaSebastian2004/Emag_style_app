@@ -1,0 +1,16 @@
+[
+  {
+    "entity": "Mouse",
+    "category": "Electronics",
+    "comment": "Comentariu aici",
+    "avg_rating": 4.6,
+   
+  },
+  {
+    "entity": "Cafea",
+    "category": "Alimente",
+    "comment": "Foarte bună",
+    "avg_rating": 3.6,
+   
+  }
+]
