@@ -72,6 +72,7 @@
                     <button id="edit-profile-btn">Editează Profilul</button>
                     <button id="my-reviews-btn">Review-urile Mele</button>
                     <button id="my-comments-btn">Comentariile Mele</button>
+                     <button id="admin-menu-btn" style="display:none;">Vezi meniul admin</button>
                     <button id="logout-btn">Logout</button>
                 </div>
             </div>
@@ -128,16 +129,18 @@
         </div>
     </div>
     <!-- Popups -->
-    <div id="filter-popup" class="popup">
-        <div class="popup-content">
-            <span class="close" id="close-filter-popup">&times;</span>
-            <h2>Filtreaza dupa categorie</h2>
-            <form id="filter-form">
-                <input type="text" id="filter-category" placeholder="Categorie">
-                <button type="submit">Filtreaza</button>
-            </form>
-        </div>
+  <div id="filter-popup" class="popup">
+    <div class="popup-content">
+        <span class="close" id="close-filter-popup">&times;</span>
+        <h2>Filtreaza dupa categorie</h2>
+    <form id="filter-form" autocomplete="off">
+    <input type="text" id="filter-category" placeholder="Categorie" autocomplete="off">
+    <div id="filter-category-list" class="category-autocomplete"></div>
+    <button type="submit">Filtreaza</button>
+    <div id="all-categories-list" class="all-categories-list"></div>
+</form>
     </div>
+</div>
 
 <div id="add-review-popup" class="popup">
     <div class="popup-content">
@@ -174,8 +177,27 @@
         </div>
     </div>
 
-    <footer class="main-footer">
+           <footer class="main-footer">
         <p>&copy; 2025 Review Application. All rights reserved.</p>
+        <!-- FAB: Bug report, sticky in footer, modern tiny icon -->
+        <button id="report-bug-fab" title="Raportează bug">
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="none">
+                <!-- Cute bug body -->
+                <ellipse class="bug-body" cx="16" cy="22" rx="9" ry="8" />
+                <circle class="bug-body" cx="16" cy="15" r="7.4"/>
+                <!-- Dots/eyes -->
+                <ellipse class="bug-dot" cx="13.5" cy="16.5" rx="1.15" ry="1.15"/>
+                <ellipse class="bug-dot" cx="18.5" cy="16.5" rx="1.15" ry="1.15"/>
+                <!-- Cheeks -->
+                <ellipse class="bug-dot" cx="13.2" cy="18.8" rx="0.5" ry="0.3"/>
+                <ellipse class="bug-dot" cx="18.8" cy="18.8" rx="0.5" ry="0.3"/>
+                <!-- Smile (modern) -->
+                <path class="bug-face" d="M14.4 19.3 Q16 20.2 17.6 19.3"/>
+                <!-- Antennae -->
+                <path class="bug-face" d="M12.7 9 Q9.2 6.5 13 4.7"/>
+                <path class="bug-face" d="M19.3 9 Q22.8 6.5 19 4.7"/>
+            </svg>
+        </button>
     </footer>
     <!-- POPUP inventar/statistici -->
     <div id="stats-popup" class="popup">
@@ -196,6 +218,19 @@
             </div>
         </div>
     </div>
+    <!-- BUG REPORT FORM POPUP -->
+    <div id="bug-report-popup" class="popup">
+        <div class="popup-content" style="max-width:400px;">
+            <span class="close" id="close-bug-report-popup">&times;</span>
+            <h2>Raportează un Bug</h2>
+            <form id="bug-report-form">
+                <textarea id="bug-description" rows="4" style="width:100%;" placeholder="Descrie bug-ul..." required></textarea><br>
+                <button type="submit">Trimite Bug Report</button>
+                <span id="bug-report-msg" style="margin-left:1em;"></span>
+            </form>
+        </div>
+    </div>
     <script src="../scripts/main.js"></script>
+    <script src="../scripts/bugreport.js"></script>
 </body>
 </html>

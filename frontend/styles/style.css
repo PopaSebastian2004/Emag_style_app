@@ -3,12 +3,8 @@ body {
     font-family: 'Arial', sans-serif;
     background: #f9f9f9;
     color: #333;
-    height: 100vh;
-    overflow: auto;
 }
-html {
-    overflow: auto;
-}
+
 h1, h2, h3, h4 {
     color: #444;
     text-align: center;
@@ -274,18 +270,18 @@ body.popup-open {
 .popup {
     scrollbar-width: none;
 }
-.comment-popup-content::-webkit-scrollbar { width: 12px; }
+
 .comment-popup-content {
     scrollbar-color: #007bff #e2e2e2;
+    scrollbar-width: thin;
 }
-.popup-content::-webkit-scrollbar,
-body::-webkit-scrollbar {
-    width: 0 !important;
-    display: none;
+.comments-list li,
+.review-comment,
+.comment-comment {
+    overflow-wrap: break-word;
+   
 }
-body::-webkit-scrollbar {
-    width: 0 !important; background: transparent;
-}
+
 
 /* GALLERY LIGHTBOX */
 #lightbox {
@@ -402,7 +398,6 @@ body::-webkit-scrollbar {
     padding: 16px 18px;
     border-radius: 12px;
     font-size: 1.09rem;
-    word-break: break-word;
     overflow-wrap: break-word;
     display: flex;
     flex-direction: column;
@@ -557,8 +552,11 @@ textarea { min-height: 60px; }
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     background: linear-gradient(135deg, #007bff, #0056b3);
+}
+.auth-body {
+    padding-bottom: 0 !important;
 }
 .auth-container {
     background: white;
@@ -637,21 +635,10 @@ textarea { min-height: 60px; }
     .lightbox-img { width: 93vw; }
 }
 
-/* Scrollbar hiding on body except for .comment-popup-content */
-body::-webkit-scrollbar,
-html::-webkit-scrollbar {
-    width: 0 !important;
-    background: transparent;
-    display: none;
-}
-.comment-popup-content::-webkit-scrollbar {
-    width: 12px;
-    background: #e2e2e2;
-}
-.comment-popup-content::-webkit-scrollbar-thumb {
-    background: #007bff;
-    border-radius: 7px;
-}
+
+/* REMOVE THIS: .comment-popup-content::-webkit-scrollbar */
+
+
 body, html {
     overscroll-behavior: contain;
 }
@@ -982,7 +969,7 @@ body, html {
     font-size: 1em;
     margin-left: 2px;
     margin-bottom: 2px;
-    word-break: break-word;
+  overflow-wrap: break-word;
     padding-left: 2px;
     font-family: inherit;
 }
@@ -1021,4 +1008,416 @@ body, html {
         padding: 10px 7px 8px 12px;
         font-size: 0.98em;
     }
+}
+
+
+#report-bug-fab {
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 54px;
+    height: 54px;
+    box-shadow: 0 2px 8px #0002;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#report-bug-fab:hover {
+    background: #b71c1c;
+}
+#report-bug-fab svg {
+    display: block;
+}
+
+#bug-report-popup .popup-content {
+    padding: 2em 2em 1em 2em;
+    border-radius: 10px;
+    position: relative;
+}
+#bug-report-popup .close {
+    position: absolute;
+    right: 16px;
+    top: 10px;
+    font-size: 1.7em;
+    color: #666;
+    cursor: pointer;
+}
+#bug-report-popup button[type="submit"] {
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 18px;
+    margin-top: 12px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#bug-report-popup button[type="submit"]:hover {
+    background: #0057b7;
+}
+#bug-report-popup textarea {
+    border-radius: 6px;
+    border: 1px solid #bbb;
+    padding: 8px;
+    font-size: 1em;
+    resize: vertical;
+    min-height: 80px;
+    max-height: 200px;
+}
+
+/* Hide legacy section */
+#bug-report-section { display: none !important; }
+
+.main-footer {
+    background: #232323;
+    color: #eee;
+    padding: 1.5em 0 1.5em 0;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    min-height: 70px;
+}
+
+/* Floating bug icon style: aligned perfectly IN (not over) black bar, centered vertically, beautiful */
+#report-bug-fab {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #d32f2f;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 54px;
+    height: 54px;
+    box-shadow: 0 3px 16px #0004, 0 1.5px 6px #232323;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    border: 2.5px solid #232323;
+    outline: none;
+}
+#report-bug-fab:hover {
+    background: #f44336;
+    box-shadow: 0 6px 24px #0006, 0 2px 8px #232323;
+}
+#report-bug-fab svg {
+    display: block;
+    margin: 0 auto;
+    filter: drop-shadow(0 1px 0 #0004);
+}
+
+/* SVG bug improvements */
+#report-bug-fab svg .bug-body {
+    fill: #fff;
+    stroke: #d32f2f;
+    stroke-width: 2.3px;
+}
+#report-bug-fab svg .bug-dot {
+    fill: #d32f2f;
+}
+#report-bug-fab svg .bug-face {
+    stroke: #d32f2f;
+    stroke-width: 1.5px;
+    stroke-linecap: round;
+}
+
+/* BUG REPORT POPUP: limit size, scroll if too big */
+#bug-report-popup .popup-content {
+    padding: 2.1em 2.3em 1.3em 2.3em;
+    border-radius: 14px;
+    position: relative;
+    max-width: 420px;
+    max-height: 64vh;
+    min-width: 318px;
+    background: #fff;
+    overflow: auto;
+    box-shadow: 0 4px 32px #0004;
+}
+#bug-report-popup .close {
+    position: absolute;
+    right: 18px;
+    top: 13px;
+    font-size: 1.7em;
+    color: #666;
+    cursor: pointer;
+    z-index: 10;
+}
+#bug-report-popup button[type="submit"] {
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 0.7em 1.8em;
+    margin-top: 15px;
+    font-size: 1.08em;
+    cursor: pointer;
+    font-weight: bold;
+    letter-spacing: 0.01em;
+}
+#bug-report-popup button[type="submit"]:hover {
+    background: #0057b7;
+}
+#bug-report-popup textarea {
+    border-radius: 6px;
+    border: 1.2px solid #bbb;
+    padding: 8px;
+    font-size: 1.03em;
+    min-height: 80px;
+    max-height: 80px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 0.5em;
+    transition: border-color 0.2s;
+    resize: none;
+}
+#bug-report-popup textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* Hide legacy section */
+#bug-report-section { display: none !important; }
+
+/* ...restul stilurilor existente... */
+
+/* ...restul stilurilor existente... */
+
+/* FOOTER sticky bottom, full width */
+.main-footer {
+    background: #232323;
+    color: #eee;
+    padding: 1.5em 0 1.5em 0;
+    text-align: center;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100vw;
+    z-index: 100;
+    min-height: 70px;
+    box-shadow: 0 -1px 10px #0002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ...restul stilurilor existente... */
+
+/* FOOTER sticky bottom, full width, LESS HEIGHT */
+.main-footer {
+    background: #232323;
+    color: #eee;
+    padding: 0.6em 0 0.6em 0;
+    text-align: center;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100vw;
+    z-index: 100;
+    min-height: 42px;
+    box-shadow: 0 -1px 10px #0002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.main-footer p {
+    flex: 1 1 auto;
+    margin: 0;
+    text-align: center;
+    font-size: 1.03em;
+    line-height: 1.25em;
+}
+
+/* Floating bug icon: small, stays in footer */
+#report-bug-fab {
+    position: absolute;
+    right: 34px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #ff5252 60%, #d32f2f 100%);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    box-shadow: 0 2px 8px #0005, 0 1px 4px #232323;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.2s, transform 0.18s;
+    outline: none;
+    border: 1.7px solid #232323;
+    overflow: hidden;
+    padding: 0;
+}
+#report-bug-fab:hover {
+    background: linear-gradient(145deg, #ff4444 30%, #b71c1c 100%);
+    box-shadow: 0 5px 18px #0007, 0 2px 6px #232323;
+    transform: translateY(-50%) scale(1.11) rotate(-6deg);
+}
+#report-bug-fab svg {
+    display: block;
+    margin: 0 auto;
+    filter: drop-shadow(0 1px 0 #0003);
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* Bug icon SVG smaller, keep details */
+#report-bug-fab svg .bug-body {
+    fill: #fff;
+    stroke: #ff5252;
+    stroke-width: 1.2px;
+}
+#report-bug-fab svg .bug-dot {
+    fill: #ff5252;
+}
+#report-bug-fab svg .bug-face {
+    stroke: #b71c1c;
+    stroke-width: 0.8px;
+    stroke-linecap: round;
+    fill: none;
+}
+
+/* BUG REPORT POPUP: limit size, scroll if too big */
+#bug-report-popup .popup-content {
+    padding: 2.1em 2.3em 1.3em 2.3em;
+    border-radius: 14px;
+    position: relative;
+    max-width: 420px;
+    max-height: 64vh;
+    min-width: 318px;
+    background: #fff;
+    overflow: auto;
+    box-shadow: 0 4px 32px #0004;
+}
+#bug-report-popup .close {
+    position: absolute;
+    right: 18px;
+    top: 13px;
+    font-size: 1.7em;
+    color: #666;
+    cursor: pointer;
+    z-index: 10;
+}
+#bug-report-popup button[type="submit"] {
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 0.7em 1.8em;
+    margin-top: 15px;
+    font-size: 1.08em;
+    cursor: pointer;
+    font-weight: bold;
+    letter-spacing: 0.01em;
+}
+#bug-report-popup button[type="submit"]:hover {
+    background: #0057b7;
+}
+#bug-report-popup textarea {
+    border-radius: 6px;
+    border: 1.2px solid #bbb;
+    padding: 8px;
+    font-size: 1.03em;
+    min-height: 80px;
+    max-height: 80px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 0.5em;
+    transition: border-color 0.2s;
+    resize: none;
+}
+#bug-report-popup textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* Hide legacy section */
+#bug-report-section { display: none !important; }
+
+/* For page content not to be hidden behind sticky footer */
+body {
+    padding-bottom: 52px !important;
+}
+
+.all-categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 18px;
+    justify-content: flex-start;
+    padding: 10px 0 0 0;
+    margin-bottom: 0;
+    max-height: 96px;      /* scroll vertical dacă sunt prea multe rânduri */
+    overflow-y: auto;
+    max-width: 300px;      /* sau cât vrei tu, să nu fie prea lat! */
+    min-width: 0;
+    /* pentru centrare în popup */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.cat-badge {
+    display: inline-block;
+    background: #f3f8fd;
+    color: #007bff;
+    border-radius: 22px;
+    padding: 7px 20px 8px 20px;
+    font-weight: 600;
+    font-size: 1.07em;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, box-shadow 0.18s;
+    border: 1.5px solid #e1eaf7;
+    box-shadow: 0 2px 6px #007bff0a;
+    user-select: none;
+    margin-bottom: 2px;
+    position: relative;
+    white-space: nowrap;        /* badge-urile nu se rup pe 2 rânduri */
+}
+.cat-badge:hover, .cat-badge:focus {
+    background: #007bff;
+    color: #fff;
+    border-color: #0056b3; /* fix: not same as background */
+    box-shadow: 0 4px 18px #007bff22;
+    outline: none;
+}
+
+
+#filter-form button[type="submit"] {
+    width: 100%;
+    height: 45px; 
+    border-radius: 10px;
+    font-size: 1.14em;
+    font-weight: 700;
+    margin-bottom: 18px;
+    margin-top: 0;
+    letter-spacing: 0.01em;
+    background: #007bff;
+    transition: background 0.16s, box-shadow 0.16s;
+    box-shadow: 0 2px 9px #007bff14;
+    text-align: center; /* opțional */
+    display: flex;
+    align-items: center;      /* vertical center */
+    justify-content: center;  /* horizontal center */
+    padding: 0;               
+}
+
+#filter-form button[type="submit"]:hover {
+    background: #0056b3;
+    box-shadow: 0 6px 22px #007bff22;
 }

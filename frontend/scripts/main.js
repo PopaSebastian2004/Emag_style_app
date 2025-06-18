@@ -139,54 +139,106 @@ document.addEventListener("DOMContentLoaded", () => {
     const clasamentBtn = document.getElementById("clasament-btn");
     const clasamentContent = document.getElementById("clasament-content");
     document.getElementById("close-clasament-popup").onclick = () => hidePopup("clasament-popup");
-   clasamentBtn.onclick = function() {
-    clasamentContent.innerHTML = "<p>Se încarcă clasamentul...</p>";
-    showPopup("clasament-popup");
-    fetch("/get-reviews")
-    .then(res=>res.json())
-    .then(reviews => {
-        if (!reviews.length) { clasamentContent.innerHTML = "<p>Nu există date.</p>"; return; }
-        // Pereche unica: { [categorie|entity]: [toate notele] }
-        const entities = {};
-        for (const r of reviews) {
-            const key = r.category + "|" + r.entity;
-            if(!entities[key]) entities[key] = {notes: [], category: r.category, entity: r.entity};
-            entities[key].notes.push(Number(r.rating));
-            if(r.comments && r.comments.length) {
-                for(const c of r.comments) {
-                    if(c.rating) entities[key].notes.push(Number(c.rating));
+    clasamentBtn.onclick = function() {
+        clasamentContent.innerHTML = "<p>Se încarcă clasamentul...</p>";
+        showPopup("clasament-popup");
+        fetch("/get-reviews")
+        .then(res=>res.json())
+        .then(reviews => {
+            if (!reviews.length) { clasamentContent.innerHTML = "<p>Nu există date.</p>"; return; }
+            // Pereche unica: { [categorie|entity]: [toate notele] }
+            const entities = {};
+            for (const r of reviews) {
+                const key = r.category + "|" + r.entity;
+                if(!entities[key]) entities[key] = {notes: [], category: r.category, entity: r.entity};
+                entities[key].notes.push(Number(r.rating));
+                if(r.comments && r.comments.length) {
+                    for(const c of r.comments) {
+                        if(c.rating) entities[key].notes.push(Number(c.rating));
+                    }
                 }
             }
-        }
-        let arr = [];
-        for (const k in entities) {
-            let allNotes = entities[k].notes.filter(x=>!isNaN(x));
-            if (allNotes.length > 2) {
-                let avg = allNotes.reduce((a,b)=>a+b,0)/allNotes.length;
-                arr.push({entity:entities[k].entity, category:entities[k].category, avg: avg, count: allNotes.length});
+            let arr = [];
+            for (const k in entities) {
+                let allNotes = entities[k].notes.filter(x=>!isNaN(x));
+                if (allNotes.length > 2) {
+                    let avg = allNotes.reduce((a,b)=>a+b,0)/allNotes.length;
+                    arr.push({entity:entities[k].entity, category:entities[k].category, avg: avg, count: allNotes.length});
+                }
             }
-        }
-        let top = arr.sort((a,b)=>b.avg-a.avg).slice(0,5);
-        let flop = [...arr].sort((a,b)=>a.avg-b.avg).slice(0,5);
-        let html = "<b>Top 5 cele mai bine cotate entități (min 3 review-uri):</b><ol>";
-        for (const x of top) html += `<li><span class="clasament-cat">${escapeHTML(x.category)}</span> &mdash; <b>${escapeHTML(x.entity)}</b> (${x.count} review-uri) — <span style="color:#388e3c;">${x.avg.toFixed(2)}/5</span></li>`;
-        html += "</ol>";
-        html += "<b>Top 5 cele mai detestate entități (min 3 review-uri):</b><ol>";
-        for (const x of flop) html += `<li><span class="clasament-cat">${escapeHTML(x.category)}</span> &mdash; <b>${escapeHTML(x.entity)}</b> (${x.count} review-uri) — <span style="color:#d32f2f;">${x.avg.toFixed(2)}/5</span></li>`;
-        html += "</ol>";
-        clasamentContent.innerHTML = html;
+            let top = arr.sort((a,b)=>b.avg-a.avg).slice(0,5);
+            let flop = [...arr].sort((a,b)=>a.avg-b.avg).slice(0,5);
+            let html = "<b>Top 5 cele mai bine cotate entități (min 3 review-uri):</b><ol>";
+            for (const x of top) html += `<li><span class="clasament-cat">${escapeHTML(x.category)}</span> &mdash; <b>${escapeHTML(x.entity)}</b> (${x.count} review-uri) — <span style="color:#388e3c;">${x.avg.toFixed(2)}/5</span></li>`;
+            html += "</ol>";
+            html += "<b>Top 5 cele mai detestate entități (min 3 review-uri):</b><ol>";
+            for (const x of flop) html += `<li><span class="clasament-cat">${escapeHTML(x.category)}</span> &mdash; <b>${escapeHTML(x.entity)}</b> (${x.count} review-uri) — <span style="color:#d32f2f;">${x.avg.toFixed(2)}/5</span></li>`;
+            html += "</ol>";
+            clasamentContent.innerHTML = html;
+        });
+    };
+
+    // ======================= FILTRARE AUTOCOMPLETE + LISTA CATEGORII VIZIBILE ==================
+    let allCategories = [];
+function fetchAllCategories() {
+    fetch("/get-reviews")
+        .then(res => res.json())
+        .then(reviews => {
+            allCategories = Array.from(new Set(reviews.map(r => r.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, "ro"));
+            renderAllCategoriesList(allCategories);
+        });
+}
+fetchAllCategories();
+
+const filterCategoryInput = document.getElementById("filter-category");
+const filterCategoryList = document.getElementById("filter-category-list");
+const allCategoriesList = document.getElementById("all-categories-list");
+
+function renderAllCategoriesList(filtered) {
+    allCategoriesList.innerHTML = "";
+    filtered.forEach(cat => {
+        const span = document.createElement("span");
+        span.className = "cat-badge";
+        span.textContent = cat;
+        span.onclick = () => {
+            filterCategoryInput.value = cat;
+            // opțional: completează și filtrarea dacă vrei
+            // document.getElementById("filter-form").dispatchEvent(new Event('submit', {cancelable: true}));
+            // sau doar focus și "suggest"
+            filterCategoryInput.focus();
+            renderAllCategoriesList([cat]);
+        };
+        allCategoriesList.appendChild(span);
     });
-};
+}
+
+// Fără dublură: autocomplete dropdown doar dacă vrei, badge-urile doar sub buton!
+// Schimbă badge-urile în funcție de ce tastezi:
+filterCategoryInput.addEventListener("input", () => {
+    const val = filterCategoryInput.value.trim().toLowerCase();
+    const filtered = allCategories.filter(cat => cat.toLowerCase().startsWith(val));
+    renderAllCategoriesList(filtered);
+    // Dacă vrei și dropdown de autocomplete, lasă și codul de mai jos:
+    // renderCategoryAutocomplete(filtered);
+});
+
+// Când popup-ul se deschide (sau golim inputul), afișăm TOATE badge-urile:
+document.getElementById("filter-popup-btn").addEventListener("click", () => {
+    setTimeout(() => {
+        filterCategoryInput.value = "";
+        renderAllCategoriesList(allCategories);
+    }, 100);
+});
+
     // ======================= NOU: RSS BUTTON ==================
     document.getElementById("rss-btn").onclick = function() {
         window.open("/clasament.rss", "_blank");
     };
 
-    // ========== CODUL TĂU VECHE (restul funcțiilor, UI, reviews, comments etc.) ==========
-
-    // Dropdown profile menu logic
+    // ========== VECHE (restul funcțiilor, UI, reviews, comments etc.) ==========
     const profileBtn = document.getElementById("profile-dropdown-btn");
     const profileMenu = document.getElementById("profile-dropdown-menu");
+    const adminMenuBtn = document.getElementById("admin-menu-btn");
     profileBtn.onclick = (e) => {
         e.stopPropagation();
         profileMenu.classList.toggle("open");
@@ -194,6 +246,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.addEventListener("click", () => {
         profileMenu.classList.remove("open");
     });
+
+    if (adminMenuBtn) {
+        adminMenuBtn.onclick = () => {
+            window.location.href = "/admin";
+        };
+    }
 
     document.getElementById("edit-profile-btn").onclick = () => {
         if (currentUser) {
@@ -232,7 +290,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     fetch(`/delete-review?id=${btn.dataset.id}`, {method: "DELETE"})
                         .then(r => r.text())
                         .then(msg => {
-                            // alert(msg); // Eliminat mesajul!
                             btn.closest("li").remove();
                             loadReviews(currentFilter);
                         });
@@ -255,7 +312,7 @@ document.addEventListener("DOMContentLoaded", () => {
             for (let c of comments) {
                 const li = document.createElement("li");
                 li.className = "comment-list-item";
-               li.innerHTML = `
+                li.innerHTML = `
     <div class="comment-list-header">
         <span class="comment-cat-label"><b>Categoria:</b> ${escapeHTML(c.category || "")}</span>
         <span class="comment-prod-label"><b>Produs:</b> ${escapeHTML(c.entity || "review")}</span>
@@ -271,7 +328,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     fetch(`/delete-comment?id=${btn.dataset.id}`, {method: "DELETE"})
                         .then(r => r.text())
                         .then(msg => {
-                            // alert(msg); // Eliminat mesajul!
                             btn.closest("li").remove();
                             loadReviews(currentFilter);
                         });
@@ -306,6 +362,17 @@ document.addEventListener("DOMContentLoaded", () => {
             reviewsTitle.textContent = "Review-urile tale";
             currentFilter = {mine: true};
             loadReviews(currentFilter);
+
+            fetch('/admin/users').then(res => {
+                if (!res.ok) return;
+                return res.json();
+            }).then(users => {
+                if (!users) return;
+                const me = users.find(u => u.id === currentUser.id);
+                if (me && me.isadmin && adminMenuBtn) {
+                    adminMenuBtn.style.display = 'block';
+                }
+            });
         } else window.location.href = "/";
     });
 
@@ -324,49 +391,49 @@ document.addEventListener("DOMContentLoaded", () => {
         hidePopup("filter-popup");
     };
 
- document.getElementById("review-form").onsubmit = (e) => {
-    e.preventDefault();
-    const entity = document.getElementById("entity").value;
-    const category = document.getElementById("category").value;
-    const rating = document.getElementById("rating").value;
-    const comment = document.getElementById("comment").value;
-    const imgInput = document.getElementById("review-images");
-    const errorMsg = document.getElementById("review-error-msg");
-    errorMsg.style.display = "none";
-    errorMsg.textContent = "";
+    document.getElementById("review-form").onsubmit = (e) => {
+        e.preventDefault();
+        const entity = document.getElementById("entity").value;
+        const category = document.getElementById("category").value;
+        const rating = document.getElementById("rating").value;
+        const comment = document.getElementById("comment").value;
+        const imgInput = document.getElementById("review-images");
+        const errorMsg = document.getElementById("review-error-msg");
+        errorMsg.style.display = "none";
+        errorMsg.textContent = "";
 
-    if (imgInput.files.length > 3) {
-        errorMsg.textContent = "Poti incarca maxim 3 poze!";
-        errorMsg.style.display = "block";
-        return;
-    }
-    const formData = new FormData();
-    formData.append("entity", entity);
-    formData.append("category", category);
-    formData.append("rating", rating);
-    formData.append("comment", comment);
-    for (let i = 0; i < imgInput.files.length; i++) {
-        formData.append("images", imgInput.files[i]);
-    }
-    fetch("/add-review", { method: "POST", body: formData })
-    .then(res => res.text().then(msg => ({ ok: res.ok, msg })))
-    .then(({ ok, msg }) => {
-        if (!ok && (msg.includes("Exista deja") || msg.includes("Ai deja"))) {
-            errorMsg.textContent = msg;
+        if (imgInput.files.length > 3) {
+            errorMsg.textContent = "Poti incarca maxim 3 poze!";
             errorMsg.style.display = "block";
             return;
         }
-        clearPopupForm("add-review-popup");
-        hidePopup("add-review-popup");
-        currentFilter = {mine: true};
-        reviewsTitle.textContent = "Review-urile tale";
-        loadReviews(currentFilter);
-    })
-    .catch(() => {
-        errorMsg.textContent = "Eroare la adăugarea review-ului!";
-        errorMsg.style.display = "block";
-    });
-};
+        const formData = new FormData();
+        formData.append("entity", entity);
+        formData.append("category", category);
+        formData.append("rating", rating);
+        formData.append("comment", comment);
+        for (let i = 0; i < imgInput.files.length; i++) {
+            formData.append("images", imgInput.files[i]);
+        }
+        fetch("/add-review", { method: "POST", body: formData })
+        .then(res => res.text().then(msg => ({ ok: res.ok, msg })))
+        .then(({ ok, msg }) => {
+            if (!ok && (msg.includes("Exista deja") || msg.includes("Ai deja"))) {
+                errorMsg.textContent = msg;
+                errorMsg.style.display = "block";
+                return;
+            }
+            clearPopupForm("add-review-popup");
+            hidePopup("add-review-popup");
+            currentFilter = {mine: true};
+            reviewsTitle.textContent = "Review-urile tale";
+            loadReviews(currentFilter);
+        })
+        .catch(() => {
+            errorMsg.textContent = "Eroare la adăugarea review-ului!";
+            errorMsg.style.display = "block";
+        });
+    };
     document.getElementById("review-images").onchange = function() {
         document.getElementById("image-count").textContent =
             `Incărcat(e): ${this.files.length}/3`;
@@ -415,7 +482,6 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(res => res.text())
         .then(msg => {
-            // alert(msg); // Eliminat mesajul!
             hidePopup("edit-profile-popup");
             fetch("/get-user").then(r => r.json()).then(data => {
                 if (data.username) {
@@ -604,7 +670,6 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/add-comment", { method: "POST", body: formData })
         .then(res => res.text())
         .then(msg => {
-            // alert(msg); // Eliminat mesajul!
             hidePopup("add-comment-popup");
             hidePopup("comment-popup");
             loadReviews(currentFilter);
