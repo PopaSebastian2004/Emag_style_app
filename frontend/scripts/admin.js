@@ -1,4 +1,4 @@
-// Helper: fetch current user and check admin
+
 async function checkAdmin() {
     const res = await fetch('/get-user');
     if (!res.ok) { window.location.href = 'login.html'; return; }

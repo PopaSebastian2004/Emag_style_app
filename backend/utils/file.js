@@ -57,7 +57,7 @@ function parseMultipartData(req, boundary, callback) {
         }
         let result = {};
         let files = [];
-        // Asigură existența folderului uploads la fiecare upload!
+       
         if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
         for (const part of parts) {
             const sep = part.indexOf("\r\n\r\n");

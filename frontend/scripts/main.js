@@ -282,7 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
         window.open("/clasament.rss", "_blank");
     };
 
-    // ========== VECHE (restul funcțiilor, UI, reviews, comments etc.) ==========
     const profileBtn = document.getElementById("profile-dropdown-btn");
     const profileMenu = document.getElementById("profile-dropdown-menu");
     const adminMenuBtn = document.getElementById("admin-menu-btn");

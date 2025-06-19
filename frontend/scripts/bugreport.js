@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
-    // Hide popup on click outside
+ 
     window.addEventListener('click', (event) => {
         if (popup && event.target === popup) {
             popup.style.display = 'none';
