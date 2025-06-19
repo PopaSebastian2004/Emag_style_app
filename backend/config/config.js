@@ -7,10 +7,10 @@ module.exports = {
     UPLOAD_DIR: path.join(__dirname, "../uploads"),
     PORT: 3008,
     DB: {
-        user: "postgres",
+        user: "global",       // <-- userul creat de tine
         host: "localhost",
         database: "web_app_reviews7",
-        password: "global",
+        password: "global",   // <-- parola pentru userul global
         port: 5432,
     }
 };
