@@ -530,29 +530,48 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/logout", {method:"POST"}).then(() => window.location.href = "/");
     };
 
-    document.getElementById("edit-profile-form").onsubmit = function(e) {
-        e.preventDefault();
-        const formData = {
-            username: document.getElementById("edit-username").value,
-            email: document.getElementById("edit-email").value,
-            password: document.getElementById("edit-password").value
-        };
-        fetch("/edit-profile", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(formData)
-        })
-        .then(res => res.text())
-        .then(msg => {
-            hidePopup("edit-profile-popup");
-            fetch("/get-user").then(r => r.json()).then(data => {
-                if (data.username) {
-                    currentUser = data;
-                    usernameSpan.textContent = data.username;
-                }
-            });
-        }).catch(() => {/* alert("Eroare la editarea profilului!"); */});
+ document.getElementById("edit-profile-form").onsubmit = function(e) {
+    e.preventDefault();
+    const errorMsg = document.getElementById("edit-profile-error-msg");
+    if (errorMsg) errorMsg.style.display = "none";
+    const formData = {
+        username: document.getElementById("edit-username").value,
+        email: document.getElementById("edit-email").value,
+        password: document.getElementById("edit-password").value
     };
+    fetch("/edit-profile", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(formData)
+    })
+    .then(res => res.text().then(msg => ({ ok: res.ok, status: res.status, msg })))
+    .then(({ ok, status, msg }) => {
+        if (!ok) {
+            if (errorMsg) {
+                errorMsg.textContent = msg;
+                errorMsg.style.display = "block";
+            } else {
+                alert(msg);
+            }
+            return;
+        }
+        hidePopup("edit-profile-popup");
+        fetch("/get-user").then(r => r.json()).then(data => {
+            if (data.username) {
+                currentUser = data;
+                usernameSpan.textContent = data.username;
+            }
+        });
+    })
+    .catch(() => {
+        if (errorMsg) {
+            errorMsg.textContent = "Eroare la editarea profilului!";
+            errorMsg.style.display = "block";
+        } else {
+            alert("Eroare la editarea profilului!");
+        }
+    });
+};
 
     // Inlocuire loadReviews cu filtrare/sortare pe client
     function loadReviews({category = null, mine = false} = {}) {
