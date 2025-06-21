@@ -1,4 +1,3 @@
-
 const path = require("path");
 
 module.exports = {
@@ -8,10 +7,10 @@ module.exports = {
     UPLOAD_DIR: path.join(__dirname, "../uploads"),
     PORT: 3008,
     DB: {
-        user: "postgres",      
-        host: "global",
+        user: "global",      
+        host: "localhost",
         database: "web_app_reviews7",
-        password: "postgres",   
+        password: "global",   
         port: 5432,
     }
 };
