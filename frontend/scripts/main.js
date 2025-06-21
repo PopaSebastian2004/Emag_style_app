@@ -4,6 +4,8 @@ let allReviews = [];
 let lightboxImages = [];
 let lightboxIndex = 0;
 let currentUser = null;
+let currentSort = "recent";
+let currentSearchEntity = "";
 
 function showPopup(id) {
     document.getElementById(id).style.display = "block";
@@ -41,6 +43,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const usernameSpan = document.getElementById("username");
     const reviewsContainer = document.getElementById("reviews-container");
     reviewsTitle = document.getElementById("reviews-title");
+    const searchEntityInput = document.getElementById("search-entity");
+    const sortReviewsSelect = document.getElementById("sort-reviews");
+
+    // ====================== Filtrare/SORTARE UI ==========================
+    if (searchEntityInput && sortReviewsSelect) {
+        searchEntityInput.addEventListener("input", function() {
+            currentSearchEntity = this.value.trim().toLowerCase();
+            renderFilteredAndSortedReviews();
+        });
+        sortReviewsSelect.addEventListener("change", function() {
+            currentSort = this.value;
+            renderFilteredAndSortedReviews();
+        });
+    }
 
     // ======================= EXPORT CSV (server-side, date corecte) ==================
     document.getElementById("export-csv-btn").onclick = function() {
@@ -538,6 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }).catch(() => {/* alert("Eroare la editarea profilului!"); */});
     };
 
+    // Inlocuire loadReviews cu filtrare/sortare pe client
     function loadReviews({category = null, mine = false} = {}) {
         let url = "/get-reviews";
         if (category) url += "?category=" + encodeURIComponent(category);
@@ -546,30 +563,53 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(res => res.json())
             .then(reviews => {
                 allReviews = reviews;
-                reviewsContainer.innerHTML = "";
-                if (!reviews.length) {
-                    reviewsContainer.innerHTML = "<p>Nu exista review-uri.</p>";
-                    return;
-                }
-                for (let review of reviews) {
-                    const li = document.createElement("li");
-                    li.setAttribute("data-review-id", review.id);
-                    li.reviewData = review;
-                    li.innerHTML = `
-                        <div class="review-list-header">
-                            <span class="review-list-category">${escapeHTML(review.category)}</span>
-                            <span class="review-list-entity">${escapeHTML(review.entity)}</span>
-                        </div>
-                        <span class="review-list-user">de: ${escapeHTML(review.username)}</span>
-                        <div class="review-list-rating">${renderStars(review.avg_rating)} <span class="review-list-rating-val">${parseFloat(review.avg_rating).toFixed(2)}/5</span></div>
-                        <p class="review-list-comment">${escapeHTML(review.comment)}</p>
-                        <div class="review-images">
-                        ${(review.images && review.images.length) ? review.images.map((img,i) => `<img src="${img}" class="review-image" data-idx="${i}" data-imgs="${escapeHTML(JSON.stringify(review.images))}" alt="review-img">`).join("") : ""}
-                        </div>
-                    `;
-                    reviewsContainer.appendChild(li);
-                }
+                renderFilteredAndSortedReviews();
             });
+    }
+
+    // Functie filtrare/sortare pe client
+    function renderFilteredAndSortedReviews() {
+        const reviewsContainer = document.getElementById("reviews-container");
+        let reviews = allReviews.slice();
+        if (currentSearchEntity) {
+            reviews = reviews.filter(r =>
+                (r.entity||"").toLowerCase().includes(currentSearchEntity)
+            );
+        }
+        if (currentSort === "nota-desc") {
+            reviews.sort((a, b) => parseFloat(b.avg_rating) - parseFloat(a.avg_rating));
+        } else if (currentSort === "nota-asc") {
+            reviews.sort((a, b) => parseFloat(a.avg_rating) - parseFloat(b.avg_rating));
+        } else if (currentSort === "entity-asc") {
+            reviews.sort((a, b) => (a.entity||"").localeCompare(b.entity||"", "ro"));
+        } else if (currentSort === "entity-desc") {
+            reviews.sort((a, b) => (b.entity||"").localeCompare(a.entity||"", "ro"));
+        } else { // recent
+            reviews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        }
+        reviewsContainer.innerHTML = "";
+        if (!reviews.length) {
+            reviewsContainer.innerHTML = "<p>Nu exista review-uri.</p>";
+            return;
+        }
+        for (let review of reviews) {
+            const li = document.createElement("li");
+            li.setAttribute("data-review-id", review.id);
+            li.reviewData = review;
+            li.innerHTML = `
+                <div class="review-list-header">
+                    <span class="review-list-category">${escapeHTML(review.category)}</span>
+                    <span class="review-list-entity">${escapeHTML(review.entity)}</span>
+                </div>
+                <span class="review-list-user">de: ${escapeHTML(review.username)}</span>
+                <div class="review-list-rating">${renderStars(review.avg_rating)} <span class="review-list-rating-val">${parseFloat(review.avg_rating).toFixed(2)}/5</span></div>
+                <p class="review-list-comment">${escapeHTML(review.comment)}</p>
+                <div class="review-images">
+                ${(review.images && review.images.length) ? review.images.map((img,i) => `<img src="${img}" class="review-image" data-idx="${i}" data-imgs="${escapeHTML(JSON.stringify(review.images))}" alt="review-img">`).join("") : ""}
+                </div>
+            `;
+            reviewsContainer.appendChild(li);
+        }
     }
 
     function showReviewPopup(review) {
