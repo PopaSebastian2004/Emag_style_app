@@ -673,31 +673,35 @@ document.addEventListener("DOMContentLoaded", () => {
         let notaInitiala = review.rating ? Number(review.rating).toFixed(1) : "-";
 
         popupBody.innerHTML = `
-            <div class="review-details-popup wow-review-details">
-                <div class="wow-review-row">
-                    <span class="wow-label">Categoria:</span>
+            <div class="review-details-popup wow-review-details modern-review-popup">
+                <div class="modern-review-header">
+                  <div class="modern-review-icon">
+                    <svg width="38" height="38" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" fill="#eaf4ff"/><path d="M10 14h12v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8z" fill="#007bff"/><path d="M16 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" fill="#007bff"/></svg>
+                  </div>
+                  <div class="modern-review-title">
                     <span class="review-popup-category">${escapeHTML(review.category)}</span>
-                    <span class="wow-label" style="margin-left:22px;">Produs:</span>
                     <span class="review-popup-entity">${escapeHTML(review.entity)}</span>
+                  </div>
                 </div>
-                <div class="wow-rating-row">
-                    <span class="wow-badge-label">Nota medie:</span>
-                    <span class="star-box star-box-main">
-                        <span style="margin-right:8px;">${renderStars(review.avg_rating)}</span>
-                        <span class="wow-rating-main-val">${notaMedie}</span>
-                        <span class="wow-review-count">(${nrReviewuri} review-uri)</span>
-                    </span>
-                    <span class="wow-initial-label"><b>Nota inițială:</b></span>
-                    <span class="star-box wow-initial-stars">${renderStars(review.rating)}</span>
-                    <span class="wow-initial-val">${notaInitiala}/5</span>
+                <div class="modern-review-meta">
+                  <span class="modern-review-user"><b>${escapeHTML(review.username)}</b></span>
+                  <span class="modern-review-date">${review.created_at ? new Date(review.created_at).toLocaleDateString() : ""}</span>
                 </div>
-                <div class="review-main-comment">
-                    <span class="review-author">Adăugat de: <b>${escapeHTML(review.username)}</b></span>
-                    <div class="review-comment-label">Comentariu:</div>
-                    <p>${escapeHTML(review.comment)}</p>
+                <div class="modern-review-rating-row">
+                  <span class="modern-review-label">Nota medie:</span>
+                  <span class="star-box star-box-main">${renderStars(review.avg_rating)}</span>
+                  <span class="modern-review-main-val">${notaMedie}</span>
+                  <span class="modern-review-count">(${nrReviewuri} review-uri)</span>
+                  <span class="modern-review-label" style="margin-left:18px;">Nota inițială:</span>
+                  <span class="star-box modern-initial-stars">${renderStars(review.rating)}</span>
+                  <span class="modern-initial-val">${notaInitiala}/5</span>
                 </div>
-                <div class="review-images review-gallery">
-                    ${(review.images && review.images.length) ? review.images.map((img, i) => `<img src="${img}" alt="review-img" class="review-image" data-idx="${i}" data-imgs="${escapeHTML(JSON.stringify(review.images))}">`).join("") : ""}
+                <div class="modern-main-comment">
+                  <div class="modern-comment-label">Comentariu:</div>
+                  <p>${escapeHTML(review.comment)}</p>
+                </div>
+                <div class="review-images review-gallery modern-review-gallery">
+                  ${(review.images && review.images.length) ? review.images.map((img, i) => `<img src="${img}" alt="review-img" class="review-image" data-idx="${i}" data-imgs="${escapeHTML(JSON.stringify(review.images))}">`).join("") : ""}
                 </div>
             </div>
             <div class="comments-section">

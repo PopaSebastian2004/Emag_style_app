@@ -8,9 +8,9 @@ module.exports = {
     PORT: 3008,
     DB: {
         user: "postgres",      
-        host: "localhost",
+        host: "global",
         database: "web_app_reviews7",
-        password: "global",   
+        password: "postgres",   
         port: 5432,
     }
 };
