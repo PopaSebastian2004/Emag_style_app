@@ -691,8 +691,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     <svg width="38" height="38" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" fill="#eaf4ff"/><path d="M10 14h12v8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8z" fill="#007bff"/><path d="M16 14a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" fill="#007bff"/></svg>
                   </div>
                   <div class="modern-review-title">
-                    <span class="review-popup-category">${escapeHTML(review.category)}</span>
-                    <span class="review-popup-entity">${escapeHTML(review.entity)}</span>
+                   <div><b>Produs:</b> ${escapeHTML(review.entity)}</div>
+                   <div><b>Categoria:</b> ${escapeHTML(review.category)}</div>
                   </div>
                 </div>
                 <div class="modern-review-meta">
