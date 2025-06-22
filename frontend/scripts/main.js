@@ -463,7 +463,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const errorMsg = document.getElementById("review-error-msg");
         errorMsg.style.display = "none";
         errorMsg.textContent = "";
+      
+        if (entity.length > 15) {
+        errorMsg.textContent = "Numele produsului nu poate avea mai mult de 15 caractere!";
+        errorMsg.style.display = "block";
+        return;
+    }
+    if (category.length > 15) {
+        errorMsg.textContent = "Numele categoriei nu poate avea mai mult de 15 caractere!";
+        errorMsg.style.display = "block";
+        return;
+    }
 
+    
         if (imgInput.files.length > 3) {
             errorMsg.textContent = "Poti incarca maxim 3 poze!";
             errorMsg.style.display = "block";

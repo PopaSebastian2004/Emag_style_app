@@ -1,14 +1,21 @@
-
 async function checkAdmin() {
     const res = await fetch('/get-user');
     if (!res.ok) { window.location.href = 'login.html'; return; }
     const user = await res.json();
-    // Fetch user info with isAdmin
     const res2 = await fetch('/admin/users');
     if (!res2.ok) { window.location.href = 'main.html'; return; }
     const users = await res2.json();
     const me = users.find(u => u.id === user.id);
     if (!me || !me.isadmin) { window.location.href = 'main.html'; return; }
+}
+
+function setDataLabels(tableId, headers) {
+    const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+    rows.forEach(row => {
+        row.querySelectorAll('td').forEach((td, i) => {
+            td.setAttribute('data-label', headers[i]);
+        });
+    });
 }
 
 async function loadUsers() {
@@ -18,9 +25,16 @@ async function loadUsers() {
     tbody.innerHTML = '';
     users.forEach(u => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${u.id}</td><td>${u.username}</td><td>${u.email}</td><td>${u.isadmin ? 'Yes' : 'No'}</td><td><button data-id="${u.id}" class="delete-user">Delete</button></td>`;
+        tr.innerHTML = `
+            <td>${u.id}</td>
+            <td>${u.username}</td>
+            <td>${u.email}</td>
+            <td>${u.isadmin ? 'Yes' : 'No'}</td>
+            <td><button data-id="${u.id}" class="delete-user">Delete</button></td>
+        `;
         tbody.appendChild(tr);
     });
+    setDataLabels("users-table", ["ID", "Username", "Email", "Admin", "Delete"]);
     document.querySelectorAll('.delete-user').forEach(btn => {
         btn.onclick = async () => {
             if (confirm('Delete this user?')) {
@@ -39,9 +53,18 @@ async function loadReviews() {
     tbody.innerHTML = '';
     reviews.forEach(r => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${r.id}</td><td>${r.user_id}</td><td>${r.entity}</td><td>${r.category}</td><td>${r.comment}</td><td>${r.rating}</td><td><button data-id="${r.id}" class="delete-review">Delete</button></td>`;
+        tr.innerHTML = `
+            <td>${r.id}</td>
+            <td>${r.user_id}</td>
+            <td>${r.entity}</td>
+            <td>${r.category}</td>
+            <td>${r.comment}</td>
+            <td>${r.rating}</td>
+            <td><button data-id="${r.id}" class="delete-review">Delete</button></td>
+        `;
         tbody.appendChild(tr);
     });
+    setDataLabels("reviews-table", ["ID", "User ID", "Entity", "Category", "Comment", "Rating", "Delete"]);
     document.querySelectorAll('.delete-review').forEach(btn => {
         btn.onclick = async () => {
             if (confirm('Delete this review?')) {
@@ -60,9 +83,16 @@ async function loadBugs() {
     tbody.innerHTML = '';
     bugs.forEach(b => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${b.id}</td><td>${b.username||''}</td><td>${b.description}</td><td>${b.created_at}</td><td><button data-id="${b.id}" class="delete-bug">Delete</button></td>`;
+        tr.innerHTML = `
+            <td>${b.id}</td>
+            <td>${b.username||''}</td>
+            <td>${b.description}</td>
+            <td>${b.created_at}</td>
+            <td><button data-id="${b.id}" class="delete-bug">Delete</button></td>
+        `;
         tbody.appendChild(tr);
     });
+    setDataLabels("bugs-table", ["ID", "User", "Description", "Created At", "Delete"]);
     document.querySelectorAll('.delete-bug').forEach(btn => {
         btn.onclick = async () => {
             if (confirm('Delete this bug report?')) {
@@ -79,4 +109,4 @@ window.onload = async () => {
     loadUsers();
     loadReviews();
     loadBugs();
-}; 
+};
