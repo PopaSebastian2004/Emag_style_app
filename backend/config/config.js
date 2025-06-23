@@ -6,7 +6,7 @@ module.exports = {
     TOKEN_EXPIRY: "2h",
     PORT: 3008,
     DB: {
-        user: "global",
+        user: "postgres",
         host: "localhost",
         database: "web_app_reviews7",
         password: "global",
