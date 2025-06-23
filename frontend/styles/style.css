@@ -2839,3 +2839,52 @@ overflow-wrap: break-word;
     margin-left: 20px !important; 
   }
 }
+@media (max-width: 400px) {
+  .comments-list, .comment-card, .comment-images {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+   
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .comment-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+ 
+    overflow-x: hidden !important;
+  }
+
+
+  .comment-image, .review-image {
+    max-width: 48vw;
+    height: auto;
+    box-sizing: border-box;
+  }
+}
+.review-images {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.review-image {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #f9f9f9;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.03);
+}
+@media (max-width: 600px) {
+  .review-image {
+    width: 70px;
+    height: 70px;
+  }
+  .review-images {
+    gap: 8px;
+  }
+}

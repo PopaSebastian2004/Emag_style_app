@@ -1,7 +1,4 @@
-const fs = require("fs");
 const path = require("path");
-const crypto = require("crypto");
-const { UPLOAD_DIR } = require("../config/config");
 
 function sendResponse(res, status, ctype, data) {
     res.writeHead(status, { "Content-Type": ctype });
@@ -9,6 +6,7 @@ function sendResponse(res, status, ctype, data) {
 }
 
 function serveStaticFile(res, filePath) {
+    const fs = require("fs");
     const ext = path.extname(filePath).toLowerCase();
     const mimeTypes = {
         ".html": "text/html", ".css": "text/css", ".js": "application/javascript",
@@ -24,22 +22,6 @@ function serveStaticFile(res, filePath) {
         }
     });
 }
-function serveUploadedFile(res, filePath) {
-    const absPath = path.join(UPLOAD_DIR, filePath);
-    if (!absPath.startsWith(UPLOAD_DIR)) {
-        sendResponse(res, 403, "text/plain", "Forbidden");
-        return;
-    }
-    fs.readFile(absPath, (err, data) => {
-        if (err) sendResponse(res, 404, "text/plain", "File Not Found: " + absPath);
-        else {
-            const ext = path.extname(absPath).toLowerCase();
-            const mimeTypes = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif" };
-            res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
-            res.end(data);
-        }
-    });
-}
 
 
 function parseMultipartData(req, boundary, callback) {
@@ -50,15 +32,13 @@ function parseMultipartData(req, boundary, callback) {
         let parts = [];
         let start = data.indexOf(boundaryBuf) + boundaryBuf.length + 2; // skip \r\n
         while (start < data.length) {
-            let end = data.indexOf(boundaryBuf, start) - 2; // before \r\n
+            let end = data.indexOf(boundaryBuf, start) - 2; 
             if (end < 0) break;
             parts.push(data.slice(start, end));
-            start = end + boundaryBuf.length + 4; // skip \r\n--
+            start = end + boundaryBuf.length + 4; 
         }
         let result = {};
-        let files = [];
-       
-        if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+        let files = []; 
         for (const part of parts) {
             const sep = part.indexOf("\r\n\r\n");
             if (sep === -1) continue;
@@ -69,14 +49,10 @@ function parseMultipartData(req, boundary, callback) {
             const name = nameMatch[1];
             const filenameMatch = headerStr.match(/filename="([^"]+)"/);
             if (filenameMatch) {
-                let ext = path.extname(filenameMatch[1]).toLowerCase();
-                if (![".jpg", ".jpeg", ".png", ".gif", ".csv", ".json"].includes(ext)) ext = ".jpg";
-                const fname = require("crypto").randomBytes(12).toString("hex") + ext;
-                const absPath = path.join(UPLOAD_DIR, fname);
-                // Creează recursiv folderul uploads dacă nu există!
-                if (!fs.existsSync(path.dirname(absPath))) fs.mkdirSync(path.dirname(absPath), { recursive: true });
-                fs.writeFileSync(absPath, body);
-                files.push(fname);
+                const originalName = filenameMatch[1];
+                const mimeMatch = headerStr.match(/Content-Type: ([^;\r\n]+)/i);
+                const mimetype = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+                files.push({ buffer: body, originalName, mimetype });
             } else {
                 result[name] = body.toString().trim();
             }
@@ -85,4 +61,4 @@ function parseMultipartData(req, boundary, callback) {
     });
 }
 
-module.exports = { sendResponse, serveStaticFile, serveUploadedFile, parseMultipartData };
+module.exports = { sendResponse, serveStaticFile, parseMultipartData };

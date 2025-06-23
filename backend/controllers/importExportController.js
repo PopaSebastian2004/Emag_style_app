@@ -34,6 +34,7 @@ module.exports = {
             sendResponse(res, 500, "text/plain", "Eroare la export CSV.");
         }
     },
+   
     importCSV(req, res, user) {
         const contentType = req.headers["content-type"] || "";
         if (!contentType.startsWith("multipart/form-data")) {
@@ -42,10 +43,10 @@ module.exports = {
         }
         const boundary = contentType.split("boundary=")[1];
         parseMultipartData(req, boundary, async (fields, files) => {
-            if (!files.length) return sendResponse(res, 400, "text/plain", "Niciun fișier CSV primit.");
-            const filePath = path.join(UPLOAD_DIR, files[0]);
+            if (!files.length || !files[0].buffer)
+                return sendResponse(res, 400, "text/plain", "Niciun fișier CSV primit.");
             try {
-                const data = fs.readFileSync(filePath, "utf8");
+                const data = files[0].buffer.toString("utf8"); // Citește direct din buffer!
                 const rows = csvParse(data, { columns: true, skip_empty_lines: true });
                 let inserted = 0, duplicate = 0, invalid = 0;
                 for (const row of rows) {
@@ -65,7 +66,6 @@ module.exports = {
                         inserted++;
                     } catch {}
                 }
-                fs.unlinkSync(filePath);
                 sendResponse(
                     res, 200, "text/plain", 
                     `Import CSV reușit (${inserted} review-uri importate). Duplicate: ${duplicate}. Invalide: ${invalid}.`
@@ -75,6 +75,7 @@ module.exports = {
             }
         });
     },
+
     importJSON(req, res, user) {
         const contentType = req.headers["content-type"] || "";
         if (!contentType.startsWith("multipart/form-data")) {
@@ -83,10 +84,10 @@ module.exports = {
         }
         const boundary = contentType.split("boundary=")[1];
         parseMultipartData(req, boundary, async (fields, files) => {
-            if (!files.length) return sendResponse(res, 400, "text/plain", "Niciun fișier JSON primit.");
-            const filePath = path.join(UPLOAD_DIR, files[0]);
+            if (!files.length || !files[0].buffer)
+                return sendResponse(res, 400, "text/plain", "Niciun fișier JSON primit.");
             try {
-                const data = fs.readFileSync(filePath, "utf8");
+                const data = files[0].buffer.toString("utf8");
                 let arr = JSON.parse(data);
                 if (!Array.isArray(arr)) arr = [arr];
                 let inserted = 0, duplicate = 0, invalid = 0;
@@ -107,7 +108,6 @@ module.exports = {
                         inserted++;
                     } catch {}
                 }
-                fs.unlinkSync(filePath);
                 sendResponse(
                     res, 200, "text/plain", 
                     `Import JSON reușit (${inserted} review-uri importate). Duplicate: ${duplicate}. Invalide: ${invalid}.`

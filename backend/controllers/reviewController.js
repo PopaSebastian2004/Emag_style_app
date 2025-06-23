@@ -1,8 +1,6 @@
-const path = require("path");
-const fs = require("fs");
 const pool = require("../db/pool");
 const { sendResponse, parseMultipartData } = require("../utils/file");
-const { UPLOAD_DIR } = require("../config/config");
+const { uploadBufferToS3, getS3Url, deleteFromS3 } = require("../utils/s3");
 
 module.exports = {
     async getMyReviews(req, res, user) {
@@ -10,7 +8,7 @@ module.exports = {
             const result = await pool.query("SELECT * FROM reviews WHERE user_id = $1 ORDER BY created_at DESC", [user.id]);
             for (let r of result.rows) {
                 const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id = $1", [r.id]);
-                r.images = imgs.rows.map(img => "/uploads/" + img.image_path);
+                r.images = imgs.rows.map(img => getS3Url(img.image_path));
             }
             sendResponse(res, 200, "application/json", JSON.stringify(result.rows));
         } catch (err) {
@@ -23,7 +21,7 @@ module.exports = {
         try {
             const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id=$1", [id]);
             for (const row of imgs.rows) {
-                try { fs.unlinkSync(path.join(UPLOAD_DIR, row.image_path)); } catch {}
+                try { await deleteFromS3(row.image_path); } catch {}
             }
             await pool.query("DELETE FROM review_images WHERE review_id=$1", [id]);
             await pool.query("DELETE FROM review_comments WHERE review_id=$1", [id]);
@@ -44,7 +42,7 @@ module.exports = {
             `, [user.id]);
             for (let c of result.rows) {
                 const imgs = await pool.query("SELECT image_path FROM comment_images WHERE comment_id = $1", [c.id]);
-                c.images = imgs.rows.map(img => "/uploads/" + img.image_path);
+                c.images = imgs.rows.map(img => getS3Url(img.image_path));
             }
             sendResponse(res, 200, "application/json", JSON.stringify(result.rows));
         } catch (err) {
@@ -57,7 +55,7 @@ module.exports = {
         try {
             const imgs = await pool.query("SELECT image_path FROM comment_images WHERE comment_id=$1", [id]);
             for (const row of imgs.rows) {
-                try { fs.unlinkSync(path.join(UPLOAD_DIR, row.image_path)); } catch {}
+                try { await deleteFromS3(row.image_path); } catch {}
             }
             await pool.query("DELETE FROM comment_images WHERE comment_id=$1", [id]);
             await pool.query("DELETE FROM review_comments WHERE id=$1 AND user_id=$2", [id, user.id]);
@@ -83,12 +81,12 @@ module.exports = {
             const result = await pool.query(sql, params);
             for (let r of result.rows) {
                 const imgs = await pool.query("SELECT image_path FROM review_images WHERE review_id = $1", [r.id]);
-                r.images = imgs.rows.map(img => "/uploads/" + img.image_path);
+                r.images = imgs.rows.map(img => getS3Url(img.image_path));
 
                 const comms = await pool.query(`SELECT c.*, u.username FROM review_comments c JOIN users u ON c.user_id = u.id WHERE c.review_id = $1 ORDER BY c.created_at ASC`, [r.id]);
                 for (let c of comms.rows) {
                     const cimgs = await pool.query("SELECT image_path FROM comment_images WHERE comment_id = $1", [c.id]);
-                    c.images = cimgs.rows.map(img => "/uploads/" + img.image_path);
+                    c.images = cimgs.rows.map(img => getS3Url(img.image_path));
                 }
                 r.comments = comms.rows;
 
@@ -107,42 +105,50 @@ module.exports = {
             sendResponse(res, 500, "text/plain", "Failed to fetch reviews.");
         }
     },
-    addReview(req, res, user) {
-        const contentType = req.headers["content-type"] || "";
-        if (contentType.startsWith("multipart/form-data")) {
-            const boundary = contentType.split("boundary=")[1];
-            parseMultipartData(req, boundary, async (fields, files) => {
-                const { entity, category, comment, rating } = fields;
-                if (!entity || !category || !comment || !rating)
-                    return sendResponse(res, 400, "text/plain", "All fields required.");
-                try {
-                    const exists = await pool.query(
-                        "SELECT 1 FROM reviews WHERE entity = $1 AND category = $2 LIMIT 1",
-                        [entity, category]
-                    );
-                    if (exists.rows.length) {
-                        return sendResponse(res, 400, "text/plain", "Exista deja acest produs in aceasta categorie!");
-                    }
-                    const result = await pool.query(
-                        "INSERT INTO reviews (user_id, entity, category, comment, rating) VALUES ($1,$2,$3,$4,$5) RETURNING id",
-                        [user.id, entity, category, comment, rating]
-                    );
-                    const reviewId = result.rows[0].id;
-                    for (let fname of files.slice(0,3)) {
-                        await pool.query("INSERT INTO review_images (review_id, image_path) VALUES ($1,$2)", [reviewId, fname]);
-                    }
-                    sendResponse(res, 200, "text/plain", "Review added.");
-                } catch (err) {
-                    if (err.code === '23505') {
-                        return sendResponse(res, 400, "text/plain", "Exista deja acest produs in aceasta categorie!");
-                    }
-                    sendResponse(res, 500, "text/plain", "Error inserting review.");
+ addReview(req, res, user) {
+    const contentType = req.headers["content-type"] || "";
+    if (contentType.startsWith("multipart/form-data")) {
+        const boundary = contentType.split("boundary=")[1];
+        parseMultipartData(req, boundary, async (fields, files) => {
+            const { entity, category, comment, rating } = fields;
+            if (!entity || !category || !comment || !rating)
+                return sendResponse(res, 400, "text/plain", "All fields required.");
+            try {
+                const exists = await pool.query(
+                    "SELECT 1 FROM reviews WHERE entity = $1 AND category = $2 LIMIT 1",
+                    [entity, category]
+                );
+                if (exists.rows.length) {
+                    return sendResponse(res, 400, "text/plain", "Exista deja acest produs in aceasta categorie!");
                 }
-            });
-        } else {
-            sendResponse(res, 400, "text/plain", "Invalid upload.");
-        }
-    },
+                const result = await pool.query(
+                    "INSERT INTO reviews (user_id, entity, category, comment, rating) VALUES ($1,$2,$3,$4,$5) RETURNING id",
+                    [user.id, entity, category, comment, rating]
+                );
+                const reviewId = result.rows[0].id;
+
+             
+
+                for (let file of files.slice(0, 3)) {
+                    try {
+                        const key = await uploadBufferToS3(file.buffer, file.originalName, "reviews");
+                        await pool.query("INSERT INTO review_images (review_id, image_path) VALUES ($1,$2)", [reviewId, key]);
+                    } catch (imgErr) {
+                     
+                    }
+                }
+                sendResponse(res, 200, "text/plain", "Review added.");
+            } catch (err) {
+                if (err.code === '23505') {
+                    return sendResponse(res, 400, "text/plain", "Exista deja acest produs in aceasta categorie!");
+                }
+                sendResponse(res, 500, "text/plain", "Error inserting review.");
+            }
+        });
+    } else {
+        sendResponse(res, 400, "text/plain", "Invalid upload.");
+    }
+},
     addComment(req, res, user) {
         const contentType = req.headers["content-type"] || "";
         if (contentType.startsWith("multipart/form-data")) {
@@ -157,8 +163,9 @@ module.exports = {
                         [review_id, user.id, comment, rating || null]
                     );
                     const commentId = result.rows[0].id;
-                    for (let fname of files.slice(0,3)) {
-                        await pool.query("INSERT INTO comment_images (comment_id, image_path) VALUES ($1, $2)", [commentId, fname]);
+                    for (let file of files.slice(0,3)) {
+                        const key = await uploadBufferToS3(file.buffer, file.originalName, "comments");
+                        await pool.query("INSERT INTO comment_images (comment_id, image_path) VALUES ($1, $2)", [commentId, key]);
                     }
                     sendResponse(res, 200, "text/plain", "Comment added.");
                 } catch (err) {
