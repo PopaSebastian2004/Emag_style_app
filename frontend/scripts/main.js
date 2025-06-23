@@ -1,12 +1,18 @@
-let currentFilter = { mine: true };
-let reviewsTitle = null;
-let allReviews = [];
-let lightboxImages = [];
-let lightboxIndex = 0;
-let currentUser = null;
-let currentSort = "recent";
-let currentSearchEntity = "";
+// ============================
+// Variabile globale si utilitare
+// ============================
+let currentFilter = { mine: true }; // Filtru curent (review-urile mele sau pe categorie)
+let reviewsTitle = null;            // Referinta la titlul sectiunii de review-uri
+let allReviews = [];                // Toate review-urile incarcate din backend
+let lightboxImages = [];            // Imagini pentru lightbox
+let lightboxIndex = 0;              // Indexul imaginii curente din lightbox
+let currentUser = null;             // Utilizatorul curent
+let currentSort = "recent";         // Sortarea curenta a review-urilor
+let currentSearchEntity = "";       // Cautare dupa nume produs
 
+// =================================
+// Functii utilitare UI
+// =================================
 function showPopup(id) {
     document.getElementById(id).style.display = "block";
     document.body.classList.add("popup-open");
@@ -15,14 +21,15 @@ function hidePopup(id) {
     document.getElementById(id).style.display = "none";
     document.body.classList.remove("popup-open");
 }
-
 function clearPopupForm(id) {
     const form = document.querySelector(`#${id} form`);
     if (form) form.reset();
 }
+// Escapare HTML pentru a preveni XSS in afisare
 function escapeHTML(str) {
     return (str || '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 }
+// Afisare stelute rating
 function renderStars(rating, max = 5) {
     rating = parseFloat(rating) || 0;
     let out = '';
@@ -39,7 +46,11 @@ function renderStars(rating, max = 5) {
     return out;
 }
 
+// =================================
+// Initializare la incarcarea paginii
+// =================================
 document.addEventListener("DOMContentLoaded", () => {
+    // Referinte la elemente principale
     const usernameSpan = document.getElementById("username");
     const reviewsContainer = document.getElementById("reviews-container");
     reviewsTitle = document.getElementById("reviews-title");
@@ -73,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     };
 
-    // ======================= EXPORT JSON ==================
+    // ======================= EXPORT JSON (client-side) ==================
     document.getElementById("export-json-btn").onclick = function () {
         fetch("/get-reviews")
             .then(res => res.json())
@@ -134,6 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
         fetch("/get-reviews")
             .then(res => res.json())
             .then(data => {
+                // Incarca jsPDF daca nu exista deja si apoi genereaza PDF
                 if (typeof window.jspdf === "undefined" || !window.jspdf) {
                     const script = document.createElement("script");
                     script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
@@ -180,6 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(res => res.json())
             .then(reviews => {
                 if (!reviews.length) { statsContent.innerHTML = "<p>Nu există date.</p>"; return; }
+                // Statistici: review-uri pe categorie, pe utilizator, medii pe categorie
                 const byCat = {}, byUser = {}, ratingsCat = {};
                 for (const r of reviews) {
                     byCat[r.category] = (byCat[r.category] || 0) + 1;
@@ -217,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .then(res => res.json())
             .then(reviews => {
                 if (!reviews.length) { clasamentContent.innerHTML = "<p>Nu există date.</p>"; return; }
-                // Pereche unica: { [categorie|entity]: [toate notele] }
+                // Grupare entitati cu notele lor (inclusiv din comentarii)
                 const entities = {};
                 for (const r of reviews) {
                     const key = r.category + "|" + r.entity;
@@ -249,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     };
 
-    // ======================= FILTRARE AUTOCOMPLETE + LISTA CATEGORII VIZIBILE ==================
+    // ======================= FILTRARE: autocomplete lista categorii ==================
     let allCategories = [];
     function fetchAllCategories() {
         fetch("/get-reviews")
@@ -298,6 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.open("/clasament.rss", "_blank");
     };
 
+    // ======================= PROFIL si ADMIN menu ==================
     const profileBtn = document.getElementById("profile-dropdown-btn");
     const profileMenu = document.getElementById("profile-dropdown-menu");
     const adminMenuBtn = document.getElementById("admin-menu-btn");
@@ -315,6 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
+    // ======================= Editare profil ==================
     document.getElementById("edit-profile-btn").onclick = () => {
         if (currentUser) {
             document.getElementById("edit-username").value = currentUser.username;
@@ -323,6 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
         showPopup("edit-profile-popup");
     };
 
+    // ======================= Lista review-urilor mele (popup) ==================
     document.getElementById("my-reviews-btn").onclick = () => {
         fetch("/get-my-reviews")
             .then(res => res.json())
@@ -361,6 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     };
 
+    // ======================= Lista comentariilor mele (popup) ==================
     document.getElementById("my-comments-btn").onclick = () => {
         fetch("/get-my-comments")
             .then(res => res.json())
@@ -399,6 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     };
 
+    // ======================= Inchidere popups ==================
     document.getElementById("close-edit-profile-popup").onclick = () => hidePopup("edit-profile-popup");
     document.getElementById("close-my-reviews-popup").onclick = () => hidePopup("my-reviews-popup");
     document.getElementById("close-my-comments-popup").onclick = () => hidePopup("my-comments-popup");
@@ -417,6 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("close-comment-popup").onclick = () => hidePopup("comment-popup");
     document.getElementById("close-add-comment-popup").onclick = () => hidePopup("add-comment-popup");
 
+    // ======================= Autentificare utilizator si meniu admin ==================
     fetch("/get-user").then(r => r.json()).then(data => {
         if (data.username) {
             currentUser = data;
@@ -425,6 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
             currentFilter = { mine: true };
             loadReviews(currentFilter);
 
+            // Arata butonul admin doar daca utilizatorul e admin
             fetch('/admin/users').then(res => {
                 if (!res.ok) return;
                 return res.json();
@@ -438,6 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else window.location.href = "/";
     });
 
+    // ======================= Filtrare dupa categorie (form) ==================
     document.getElementById("filter-form").onsubmit = (e) => {
         e.preventDefault();
         const category = document.getElementById("filter-category").value.trim();
@@ -453,6 +474,7 @@ document.addEventListener("DOMContentLoaded", () => {
         hidePopup("filter-popup");
     };
 
+    // ======================= Adauga review nou ==================
     document.getElementById("review-form").onsubmit = (e) => {
         e.preventDefault();
         const entity = document.getElementById("entity").value;
@@ -465,17 +487,15 @@ document.addEventListener("DOMContentLoaded", () => {
         errorMsg.textContent = "";
       
         if (entity.length > 15) {
-        errorMsg.textContent = "Numele produsului nu poate avea mai mult de 15 caractere!";
-        errorMsg.style.display = "block";
-        return;
-    }
-    if (category.length > 15) {
-        errorMsg.textContent = "Numele categoriei nu poate avea mai mult de 15 caractere!";
-        errorMsg.style.display = "block";
-        return;
-    }
-
-    
+            errorMsg.textContent = "Numele produsului nu poate avea mai mult de 15 caractere!";
+            errorMsg.style.display = "block";
+            return;
+        }
+        if (category.length > 15) {
+            errorMsg.textContent = "Numele categoriei nu poate avea mai mult de 15 caractere!";
+            errorMsg.style.display = "block";
+            return;
+        }
         if (imgInput.files.length > 3) {
             errorMsg.textContent = "Poti incarca maxim 3 poze!";
             errorMsg.style.display = "block";
@@ -518,6 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    // ======================= Click pe review => popup detalii & comentarii ==================
     reviewsContainer.onclick = function (e) {
         let li = e.target.closest("li[data-review-id]");
         if (!li) return;
@@ -525,6 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
         showReviewPopup(review);
     };
 
+    // ======================= Lightbox galerie imagini ==================
     document.body.addEventListener("click", function (e) {
         if (e.target.classList.contains("lightbox-bg")) hideLightbox();
         if (e.target.classList.contains("lightbox-arrow-left")) lightboxMove(-1);
@@ -538,10 +560,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === "Escape") hideLightbox();
     });
 
+    // ======================= Logout si documentatie ==================
     document.getElementById("logout-btn").onclick = () => {
         fetch("/logout", { method: "POST" }).then(() => window.location.href = "/");
     };
+    document.getElementById("see-doc-btn").onclick = () => {
+        window.open("/pages/ScholarlyHTML_documentatie.html", "_blank");
+    };
 
+    // ======================= Editare profil (submit) ==================
     document.getElementById("edit-profile-form").onsubmit = function (e) {
         e.preventDefault();
         const errorMsg = document.getElementById("edit-profile-error-msg");
@@ -585,7 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     };
 
-    // Inlocuire loadReviews cu filtrare/sortare pe client
+    // ======================= Incarcare review-uri + filtrare/sortare client ==================
     function loadReviews({ category = null, mine = false } = {}) {
         let url = "/get-reviews";
         if (category) url += "?category=" + encodeURIComponent(category);
@@ -598,7 +625,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-    // Functie filtrare/sortare pe client
+    // ======================= Afisare review-uri filtrate/sortate pe client ==================
     function renderFilteredAndSortedReviews() {
         const reviewsContainer = document.getElementById("reviews-container");
         let reviews = allReviews.slice();
@@ -643,6 +670,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    // ======================= POPUP detaliu review (cu comentarii) ==================
     function showReviewPopup(review) {
         let commentSort = "desc";
         let ratingSort = null;
@@ -780,6 +808,7 @@ document.addEventListener("DOMContentLoaded", () => {
         showPopup("comment-popup");
     }
 
+    // ======================= Submit comentariu la review ==================
     document.getElementById("add-comment-form").onsubmit = function (e) {
         e.preventDefault();
         const formData = new FormData(this);
@@ -807,6 +836,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    // ======================= Lightbox galerie imagini ==================
     function openLightbox(imgs, idx) {
         if (!imgs.length) return;
         lightboxImages = imgs;

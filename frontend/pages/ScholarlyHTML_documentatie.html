@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ro" prefix="schema: http://schema.org/ sa: https://ns.science.ai/">
+<head>
+  <meta charset="utf-8">
+  <title>Documentație Proiect Web – I rate it!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .video-btn {
+      display: inline-block;
+      background: #007bff;
+      color: #fff;
+      font-weight: bold;
+      padding: 12px 26px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin: 24px auto 18px auto;
+      font-size: 1.18em;
+      box-shadow: 0 2px 8px #007bff33;
+      transition: background 0.15s;
+      border: none;
+      cursor: pointer;
+      text-align: center;
+      display: block;
+      max-width: 320px;
+    }
+    .video-btn:hover {
+      background: #0056b3;
+      color: #fff;
+      box-shadow: 0 4px 12px #007bff33;
+    }
+  </style>
+</head>
+<body>
+<!-- Buton video prezentare -->
+<a href="https://youtu.be/Ku9KUEk_ZSQ" target="_blank" class="video-btn">&#9658; Video prezentare proiect</a>
+<article typeof="schema:ScholarlyArticle">
+  <header>
+    <h1>Documentație Proiect Web – I rate it!</h1>
+    <h4>Sebastian Popa, Dascaliu Ianis</h4>
+  </header>
+
+  <section>
+    <h2>Rezumat</h2>
+    <p>
+      Acest proiect web permite gestionarea evaluărilor și părerilor exprimate de utilizatori cu privire la o entitate X, unde X poate fi o categorie sau un element individual dintr-o clasă de interes: profesie, instituție, companie, produs sau serviciu. Utilizatorii pot adăuga recenzii, pot comenta, pot încărca imagini, iar sistemul generează statistici, inventare și clasamente, cu posibilitate de export în formate deschise (CSV, PDF) și flux RSS.
+    </p>
+  </section>
+
+  <section>
+    <h2>Arhitectură și tehnologii</h2>
+    <ul>
+      <li><b>Backend:</b> Node.js (router custom), PostgreSQL</li>
+      <li><b>Frontend:</b> HTML, CSS, JavaScript (UI custom)</li>
+      <li><b>Cloud:</b> AWS EC2 (hostare), AWS S3 (stocare imagini)</li>
+      <li><b>Export:</b> CSV (server-side), PDF (client-side, jsPDF)</li>
+      <li><b>Altele:</b> RSS 2.0 pentru clasamente</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Funcționalități principale</h2>
+    <ul>
+      <li>Autentificare și înregistrare utilizatori (JWT, cookie-uri securizate)</li>
+      <li>Adăugare, vizualizare, filtrare și ștergere recenzii pentru entități X</li>
+      <li>Comentarii la recenzii, cu rating și imagini</li>
+      <li>Inventar și statistici: totaluri, medii pe categorii, top utilizatori</li>
+      <li>Clasament entități dezirabile/detestabile (top/flop) – vizual și RSS</li>
+      <li>Export inventar recenzii în CSV (server-side) și PDF (client-side)</li>
+      <li>Import date din CSV/JSON</li>
+      <li>Administrare utilizatori, recenzii, bug reports (interfață admin dedicată)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Model de date și caracteristici recenzie</h2>
+    <ul>
+      <li><b>Entitate:</b> Numele subiectului evaluat (ex: "Liceul X", "iPhone 13")</li>
+      <li><b>Categorie:</b> Domeniul sau clasa (ex: "liceu", "telefon")</li>
+      <li><b>Rating:</b> Notă între 1 și 5</li>
+      <li><b>Comentariu:</b> Text justificativ, cu minim o trăsătură (in)dezirabilă</li>
+      <li><b>Imagini:</b> Opțional, maxim 3 per recenzie/comentariu (stocate în S3)</li>
+      <li><b>Comentarii la recenzii:</b> Fiecare cu rating opțional și imagini</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Export și import date</h2>
+    <section>
+      <h3 aria-level="3">Export CSV</h3>
+      <p>
+        Exportul CSV se realizează server-side și conține: id, entitate, categorie, medie rating, comentariu, autor.<br>
+        Exemplu de antet CSV: <code>id,entity,category,avg_rating,comment,username</code>
+      </p>
+    </section>
+    <section>
+      <h3 aria-level="3">Export PDF</h3>
+      <p>
+        Exportul PDF se realizează client-side cu jsPDF și include tabelul recenziilor vizibile, cu aceleași coloane ca la CSV.
+      </p>
+    </section>
+    <section>
+      <h3 aria-level="3">Import CSV/JSON</h3>
+      <p>
+        Utilizatorii pot importa recenzii din fișiere CSV sau JSON, cu validare automată a câmpurilor și a ratingului.
+      </p>
+    </section>
+  </section>
+
+  <section>
+    <h2>Clasament și flux RSS</h2>
+    <p>
+      Sistemul calculează automat top 5 cele mai apreciate și cele mai detestate entități (minim 3 review-uri), pe baza mediei ratingurilor din recenzii și comentarii. Clasamentul este disponibil atât vizual, cât și ca flux RSS 2.0 la <code>/clasament.rss</code>.
+    </p>
+    <aside>
+      <h4 aria-level="3">Exemplu item RSS</h4>
+      <pre>
+&lt;item&gt;
+  &lt;title&gt;Top 5 Dezirabile&lt;/title&gt;
+  &lt;description&gt;&lt;ol&gt;
+    &lt;li&gt;&lt;span&gt;Categorie&lt;/span&gt; — &lt;b&gt;Entitate&lt;/b&gt;: 4.75/5 (10 review-uri)&lt;/li&gt;
+    ...
+  &lt;/ol&gt;&lt;/description&gt;
+&lt;/item&gt;
+      </pre>
+    </aside>
+  </section>
+
+  <section>
+    <h2>Interfață utilizator</h2>
+    <ul>
+      <li><b>Pagina principală:</b> Vizualizare, filtrare, sortare, adăugare recenzii, export/import, statistici, clasament, RSS</li>
+      <li><b>Autentificare/înregistrare:</b> Formulare simple, cu validare și feedback</li>
+      <li><b>Admin:</b> Gestionare utilizatori, recenzii, bug reports</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Fluxuri și API-uri principale</h2>
+    <ul>
+      <li><code>POST /register</code>, <code>POST /login</code>, <code>POST /logout</code> – autentificare</li>
+      <li><code>GET /get-reviews</code> – listare recenzii</li>
+      <li><code>POST /add-review</code> – adăugare recenzie</li>
+      <li><code>GET /export-csv</code> – export inventar CSV</li>
+      <li><code>GET /clasament.rss</code> – flux RSS clasament</li>
+      <li><code>POST /import-csv</code>, <code>POST /import-json</code> – import date</li>
+      <li><code>GET /get-my-reviews</code>, <code>GET /get-my-comments</code> – recenzii/comentarii proprii</li>
+      <li><code>POST /report-bug</code> – raportare bug</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Considerații de securitate și scalabilitate</h2>
+    <ul>
+      <li>Stocare imagini în AWS S3, acces securizat</li>
+      <li>Autentificare JWT, cookie-uri HttpOnly, SameSite</li>
+      <li>Validare date la import/export</li>
+      <li>Scalabilitate: backend stateless, poate fi extins pe mai multe instanțe EC2</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Referințe</h2>
+    <ol>
+      <li typeof="schema:WebPage" role="doc-biblioentry"
+          resource="https://w3c.github.io/scholarly-html/"
+          property="schema:citation" id="scholarly-html">
+        <cite property="schema:name">
+          <a href="https://w3c.github.io/scholarly-html/">Scholarly HTML Community Draft</a>
+        </cite>,
+        by Tzviya Siegman & Robin Berjon, W3C, 2024.
+      </li>
+      <li typeof="schema:WebPage" role="doc-biblioentry"
+          resource="https://aws.amazon.com/"
+          property="schema:citation" id="aws">
+        <cite property="schema:name">
+          <a href="https://aws.amazon.com/">Amazon Web Services (AWS)</a>
+        </cite>
+      </li>
+      <li typeof="schema:WebPage" role="doc-biblioentry"
+          resource="https://nodejs.org/"
+          property="schema:citation" id="nodejs">
+        <cite property="schema:name">
+          <a href="https://nodejs.org/">Node.js</a>
+        </cite>
+      </li>
+      <li typeof="schema:WebPage" role="doc-biblioentry"
+          resource="https://www.postgresql.org/"
+          property="schema:citation" id="postgresql">
+        <cite property="schema:name">
+          <a href="https://www.postgresql.org/">PostgreSQL</a>
+        </cite>
+      </li>
+    </ol>
+  </section>
+</article>
+</body>
+</html> 

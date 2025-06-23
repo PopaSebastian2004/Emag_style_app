@@ -7,6 +7,7 @@ const { JWT_COOKIE_NAME } = require("../config/config");
 const { sendResponse } = require("../utils/file");
 
 module.exports = {
+    // Inregistreaza un nou utilizator. Verifica daca username sau email exista deja, apoi salveaza userul cu parola criptata.
     async register(req, res) {
         let body = "";
         req.on("data", chunk => body += chunk.toString());
@@ -26,6 +27,8 @@ module.exports = {
             }
         });
     },
+
+    // Login utilizator: verifica daca exista user cu email, compara parola, seteaza cookie JWT daca e corect
     async login(req, res) {
         let body = "";
         req.on("data", chunk => body += chunk.toString());
@@ -41,6 +44,7 @@ module.exports = {
                 const isValid = await bcrypt.compare(password, user.password);
                 if (!isValid)
                     return sendResponse(res, 401, "application/json", JSON.stringify({error:"Invalid email or password."}));
+                // Genereaza token JWT si seteaza cookie pentru sesiune
                 const token = generateJWT({ id: user.id, username: user.username, email: user.email });
                 setCookie(res, JWT_COOKIE_NAME, token, { path: "/", httpOnly: true, sameSite: true, maxAge: 60*60*2 });
                 sendResponse(res, 200, "application/json", JSON.stringify({success:true}));
@@ -49,10 +53,14 @@ module.exports = {
             }
         });
     },
+
+    // Logout: sterge cookie-ul JWT
     logout(req, res) {
         setCookie(res, JWT_COOKIE_NAME, "", { path: "/", httpOnly: true, sameSite: true, maxAge: 0 });
         sendResponse(res, 200, "text/plain", "Logged out.");
     },
+
+    // Returneaza datele userului curent daca este logat (username, id, email)
     getUser(req, res, user) {
         if (!user) return sendResponse(res, 401, "application/json", JSON.stringify({}));
         sendResponse(res, 200, "application/json", JSON.stringify({ username: user.username, id: user.id, email: user.email }));

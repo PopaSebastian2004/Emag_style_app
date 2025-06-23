@@ -19,6 +19,8 @@
         <p>Already have an account? <a href="../pages/login.html">Login here</a>.</p>
     </div>
     <script>
+
+     // La submit, trimite datele din formular la backend si proceseaza raspunsul
     document.getElementById("register-form").onsubmit = function(e) {
         e.preventDefault();
         const formData = new FormData(this);

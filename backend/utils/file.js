@@ -5,6 +5,10 @@ function sendResponse(res, status, ctype, data) {
     res.end(data);
 }
 
+/**
+ * Servește fișiere statice din frontend (html, css, js, etc)
+ */
+
 function serveStaticFile(res, filePath) {
     const fs = require("fs");
     const ext = path.extname(filePath).toLowerCase();
@@ -30,7 +34,7 @@ function parseMultipartData(req, boundary, callback) {
     req.on("end", () => {
         const boundaryBuf = Buffer.from("--" + boundary);
         let parts = [];
-        let start = data.indexOf(boundaryBuf) + boundaryBuf.length + 2; // skip \r\n
+        let start = data.indexOf(boundaryBuf) + boundaryBuf.length + 2; 
         while (start < data.length) {
             let end = data.indexOf(boundaryBuf, start) - 2; 
             if (end < 0) break;

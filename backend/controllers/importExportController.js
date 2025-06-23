@@ -6,6 +6,7 @@ const { sendResponse, parseMultipartData } = require("../utils/file");
 const { UPLOAD_DIR } = require("../config/config");
 
 module.exports = {
+    // Exporta toate review-urile in format CSV cu medie rating calculata (inclusiv rating-uri din comentarii)
     async exportCSV(req, res) {
         try {
             const result = await pool.query(`SELECT r.*, u.username
@@ -35,6 +36,7 @@ module.exports = {
         }
     },
    
+    // Importeaza review-uri dintr-un fisier CSV (upload multipart), cu validari pe date si duplicate
     importCSV(req, res, user) {
         const contentType = req.headers["content-type"] || "";
         if (!contentType.startsWith("multipart/form-data")) {
@@ -44,9 +46,9 @@ module.exports = {
         const boundary = contentType.split("boundary=")[1];
         parseMultipartData(req, boundary, async (fields, files) => {
             if (!files.length || !files[0].buffer)
-                return sendResponse(res, 400, "text/plain", "Niciun fișier CSV primit.");
+                return sendResponse(res, 400, "text/plain", "Niciun fisier CSV primit.");
             try {
-                const data = files[0].buffer.toString("utf8"); // Citește direct din buffer!
+                const data = files[0].buffer.toString("utf8"); // Citeste direct din buffer
                 const rows = csvParse(data, { columns: true, skip_empty_lines: true });
                 let inserted = 0, duplicate = 0, invalid = 0;
                 for (const row of rows) {
@@ -68,7 +70,7 @@ module.exports = {
                 }
                 sendResponse(
                     res, 200, "text/plain", 
-                    `Import CSV reușit (${inserted} review-uri importate). Duplicate: ${duplicate}. Invalide: ${invalid}.`
+                    `Import CSV reusit (${inserted} review-uri importate). Duplicate: ${duplicate}. Invalide: ${invalid}.`
                 );
             } catch (err) {
                 sendResponse(res, 500, "text/plain", "Eroare la import CSV.");
@@ -76,6 +78,7 @@ module.exports = {
         });
     },
 
+    // Importeaza review-uri dintr-un fisier JSON (upload multipart), cu validari pe date si duplicate
     importJSON(req, res, user) {
         const contentType = req.headers["content-type"] || "";
         if (!contentType.startsWith("multipart/form-data")) {
@@ -85,7 +88,7 @@ module.exports = {
         const boundary = contentType.split("boundary=")[1];
         parseMultipartData(req, boundary, async (fields, files) => {
             if (!files.length || !files[0].buffer)
-                return sendResponse(res, 400, "text/plain", "Niciun fișier JSON primit.");
+                return sendResponse(res, 400, "text/plain", "Niciun fisier JSON primit.");
             try {
                 const data = files[0].buffer.toString("utf8");
                 let arr = JSON.parse(data);
@@ -110,7 +113,7 @@ module.exports = {
                 }
                 sendResponse(
                     res, 200, "text/plain", 
-                    `Import JSON reușit (${inserted} review-uri importate). Duplicate: ${duplicate}. Invalide: ${invalid}.`
+                    `Import JSON reusit (${inserted} review-uri importate). Duplicate: ${duplicate}. Invalide: ${invalid}.`
                 );
             } catch (err) {
                 sendResponse(res, 500, "text/plain", "Eroare la import JSON.");
