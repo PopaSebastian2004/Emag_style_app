@@ -4,45 +4,7 @@
   <meta charset="utf-8">
   <title>Documentație Proiect Web – I rate it!</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    .video-btn {
-      display: inline-block;
-      background: #007bff;
-      color: #fff;
-      font-weight: bold;
-      padding: 12px 26px;
-      border-radius: 8px;
-      text-decoration: none;
-      margin: 24px auto 18px auto;
-      font-size: 1.18em;
-      box-shadow: 0 2px 8px #007bff33;
-      transition: background 0.15s;
-      border: none;
-      cursor: pointer;
-      text-align: center;
-      display: block;
-      max-width: 320px;
-    }
-    .video-btn:hover {
-      background: #0056b3;
-      color: #fff;
-      box-shadow: 0 4px 12px #007bff33;
-    }
-    .badges img {
-      margin: 0 2px 0 0;
-      vertical-align: middle;
-    }
-    pre.sql {
-      background: #f8f8f8;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 12px;
-      font-size: 0.98em;
-      overflow-x: auto;
-      margin: 1em 0;
-    }
-  </style>
-</head>
+ </head>
 <body>
 <a href="https://youtu.be/Ku9KUEk_ZSQ" target="_blank" class="video-btn">&#9658; Video prezentare proiect</a>
 <article typeof="schema:ScholarlyArticle">
