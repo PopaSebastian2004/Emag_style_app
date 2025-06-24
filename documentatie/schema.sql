@@ -1,0 +1,45 @@
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(200) NOT NULL,
+    isAdmin BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    entity VARCHAR(200) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    comment TEXT NOT NULL,
+    rating NUMERIC(2,1) NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS review_images (
+    id SERIAL PRIMARY KEY,
+    review_id INTEGER REFERENCES reviews(id) ON DELETE CASCADE,
+    image_path VARCHAR(200) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS review_comments (
+    id SERIAL PRIMARY KEY,
+    review_id INTEGER REFERENCES reviews(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    comment TEXT NOT NULL,
+    rating NUMERIC(2,1) CHECK (rating >= 1 AND rating <= 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS comment_images (
+    id SERIAL PRIMARY KEY,
+    comment_id INTEGER REFERENCES review_comments(id) ON DELETE CASCADE,
+    image_path VARCHAR(200) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS bug_reports (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    description TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
