@@ -2,7 +2,6 @@
 <html lang="ro" prefix="schema: http://schema.org/ sa: https://ns.science.ai/">
 <head>
   <meta charset="utf-8">
-  <title>Documentație Proiect Web – I rate it!</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
  </head>
 <body>
